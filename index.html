@@ -565,6 +565,8 @@
     </div>
     <div class="btn-row" style="margin-bottom:12px">
       <button class="btn btn-amber" onclick="toggleExtra('voice')" data-i18n="voiceToggle">🎙️ 生成语音 + 字幕</button>
+      <button class="btn btn-cyan" onclick="toggleExtra('cover')" data-i18n="coverToggle">🖼️ 封面 / 封底</button>
+      <button class="btn btn-pink" onclick="toggleExtra('music')" data-i18n="musicToggle">🎵 主题曲</button>
     </div>
 
     <!-- 🎙️ 语音 + 字幕 -->
@@ -681,8 +683,8 @@
       </div>
     </div>
 
-    <!-- 🖼️ 封面 / 封底（NBM 模式不使用） -->
-    <div class="extra-block" id="extra-cover" style="display:none !important">
+    <!-- 🖼️ 封面 / 封底 -->
+    <div class="extra-block" id="extra-cover" style="display:none">
       <div class="grid-2">
         <div>
           <div class="extra-head">
@@ -713,8 +715,8 @@
       </div>
     </div>
 
-    <!-- 🎵 主题曲（NBM 模式不使用） -->
-    <div class="extra-block" id="extra-music" style="display:none !important">
+    <!-- 🎵 主题曲 -->
+    <div class="extra-block" id="extra-music" style="display:none">
       <div class="extra-head">
         <span class="extra-title"><span class="emoji">🎵</span>主题曲 Prompt（纯背景音乐，无人声）</span>
         <div class="btn-row">
@@ -3320,6 +3322,7 @@ const I18N = {
     step4: '步骤 4', p4Title: '🎙️ 语音 · 字幕',
     p4Desc: '旁白 → TTS → 上传音频转 SRT → 按幕切割打包',
     voiceToggle: '🎙️ 生成语音 + 字幕',
+    coverToggle: '🖼️ 封面 / 封底', musicToggle: '🎵 主题曲',
     narrTitle: '旁白文案', regen: '⚡ 重新生成', copyStudio: '📋 复制给 Google AI Studio',
     styleLabel: '风格：', narrStd: '📖 原文旁白', narrRich: '✨ 生动旁白',
     voiceFlow: '① 生成旁白 → ② 选声线一键转语音 → ③ 试听满意 → ④ 转字幕 → ⑤ 按幕切割打包',
@@ -3369,6 +3372,7 @@ const I18N = {
     step4: 'Step 4', p4Title: '🎙️ Voice · Subtitles',
     p4Desc: 'Narration → TTS → upload audio to SRT → split by scene & download',
     voiceToggle: '🎙️ Generate voice + subtitles',
+    coverToggle: '🖼️ Cover / Back cover', musicToggle: '🎵 Theme song',
     narrTitle: 'Narration script', regen: '⚡ Regenerate', copyStudio: '📋 Copy for Google AI Studio',
     styleLabel: 'Style:', narrStd: '📖 Original text', narrRich: '✨ Enriched narration',
     voiceFlow: '① Generate narration → ② pick voice & TTS → ③ preview → ④ to SRT → ⑤ split & bundle',
