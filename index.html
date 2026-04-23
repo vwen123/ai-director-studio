@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AI动画</title>
+<title>AI 制作动画视频 Studio</title>
 <style>
   :root {
     --bg: #07070f;
@@ -383,7 +383,7 @@
 <div class="header">
   <div class="header-inner">
     <div>
-      <h1>AI动画</h1>
+      <h1>AI 制作动画视频 Studio</h1>
     </div>
     <div class="btn-row" style="align-items:center;gap:8px">
       <select id="ui-lang" onchange="setUiLang(this.value)" style="padding:5px 8px;border-radius:6px;border:1px solid #334155;background:#1e293b;color:#e2e8f0;font-size:0.8rem">
@@ -440,9 +440,9 @@
         <span style="margin-left:10px;font-size:0.75rem;color:var(--muted)">幕数</span>
         <input type="number" id="g-num-scenes" value="5" min="2" max="12" style="width:54px;text-align:center" oninput="onNumScenesChange()">
       </div>
-      <div id="source-text-wrap" style="display:none;margin-top:10px">
-        <label id="source-text-label" style="margin-top:0">课文 / 剧本原文（贴入后按句号切分成 N 幕，自动派生所有内容）</label>
-        <textarea id="g-source-text" rows="4" placeholder="贴你的课文、剧本或故事原文..." oninput="onSourceTextInput()"></textarea>
+      <div id="source-text-wrap" style="display:none !important;margin-top:10px">
+        <label id="source-text-label" style="margin-top:0">课文 / 剧本原文</label>
+        <textarea id="g-source-text" rows="4" oninput="onSourceTextInput()"></textarea>
       </div>
       <!-- 仅标题模式：故事草稿预览 / 编辑（NBM 模式不使用） -->
       <div id="story-draft-wrap" style="display:none !important;margin-top:10px;padding:12px;background:var(--bg);border:1px solid var(--phase-accent);border-radius:10px">
@@ -459,14 +459,12 @@
       </div>
     </div>
 
-    <!-- ③ 视觉风格 -->
-    <label style="margin-top:16px">🎨 视觉风格（点击后自动套用到所有 Prompt）</label>
-    <input class="style-search" id="style-search" type="text" placeholder="🔍 搜索全部风格...">
-    <div class="style-tabs" id="style-tabs"></div>
-    <div class="style-grid" id="style-grid"></div>
-    <div class="style-selected-bar">
-      <span style="color:var(--muted);font-size:0.78rem">已选：</span>
-      <span id="style-selected-label" style="color:var(--muted)">（未选，请点击上方选择）</span>
+    <!-- ③ 视觉风格（已隐藏）-->
+    <div style="display:none">
+      <input class="style-search" id="style-search" type="text">
+      <div class="style-tabs" id="style-tabs"></div>
+      <div class="style-grid" id="style-grid"></div>
+      <span id="style-selected-label"></span>
     </div>
 
     <!-- 以下为兼容脚本而保留的隐藏字段（镜头/光影/质感已按需求移除） -->
