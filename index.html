@@ -458,12 +458,14 @@
       </div>
     </div>
 
-    <!-- ③ 视觉风格（已隐藏）-->
-    <div style="display:none">
-      <input class="style-search" id="style-search" type="text">
-      <div class="style-tabs" id="style-tabs"></div>
-      <div class="style-grid" id="style-grid"></div>
-      <span id="style-selected-label"></span>
+    <!-- ③ 视觉风格 -->
+    <label style="margin-top:16px" data-i18n="styleHeader">🎨 视觉风格（点击后自动套用到 NotebookLM Prompt）</label>
+    <input class="style-search" id="style-search" type="text" data-i18n-ph="styleSearchPh" placeholder="🔍 搜索全部风格...">
+    <div class="style-tabs" id="style-tabs"></div>
+    <div class="style-grid" id="style-grid"></div>
+    <div class="style-selected-bar">
+      <span style="color:var(--muted);font-size:0.78rem" data-i18n="styleSelected">已选：</span>
+      <span id="style-selected-label" style="color:var(--muted)" data-i18n="styleNone">（未选，请点击上方选择）</span>
     </div>
 
     <!-- 以下为兼容脚本而保留的隐藏字段（镜头/光影/质感已按需求移除） -->
@@ -3310,6 +3312,9 @@ const I18N = {
     step1: '步骤 1', p1Title: '📋 作品标题', p1Desc: '输入作品标题与幕数',
     titleLabel: '作品标题', titlePh: '例：草船借箭',
     nbmWorkflow: '📘 NotebookLM 工作流', numScenes: '幕数',
+    styleHeader: '🎨 视觉风格（点击后自动套用到 NotebookLM Prompt）',
+    styleSearchPh: '🔍 搜索全部风格...',
+    styleSelected: '已选：', styleNone: '（未选，请点击上方选择）',
     nbmPanelTitle: '📘 NotebookLM 指令生成',
     nbmPanelDesc: '把下面的 Prompt 复制到 NotebookLM，让它根据你上传的课文产出分镜插图大纲',
     nbmGenBtn: '⚡ 生成 NotebookLM Prompt', nbmCopyBtn: '📋 复制给 NotebookLM',
@@ -3356,6 +3361,9 @@ const I18N = {
     step1: 'Step 1', p1Title: '📋 Project Title', p1Desc: 'Enter the title and number of scenes',
     titleLabel: 'Project Title', titlePh: 'e.g. Borrowing Arrows with Straw Boats',
     nbmWorkflow: '📘 NotebookLM Workflow', numScenes: 'Scenes',
+    styleHeader: '🎨 Visual style (auto-applied to the NotebookLM Prompt)',
+    styleSearchPh: '🔍 Search all styles...',
+    styleSelected: 'Selected:', styleNone: '(none — click a style above)',
     nbmPanelTitle: '📘 Generate NotebookLM Prompt',
     nbmPanelDesc: 'Copy the prompt below into NotebookLM — it will produce an illustrated outline from your source',
     nbmGenBtn: '⚡ Generate NotebookLM Prompt', nbmCopyBtn: '📋 Copy for NotebookLM',
