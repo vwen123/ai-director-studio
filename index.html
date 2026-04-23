@@ -383,14 +383,13 @@
 <div class="header">
   <div class="header-inner">
     <div>
-      <h1>AI 制作动画视频 Studio</h1>
+      <h1 data-i18n="appTitle">AI 制作动画视频 Studio</h1>
     </div>
     <div class="btn-row" style="align-items:center;gap:8px">
       <select id="ui-lang" onchange="setUiLang(this.value)" style="padding:5px 8px;border-radius:6px;border:1px solid #334155;background:#1e293b;color:#e2e8f0;font-size:0.8rem">
         <option value="zh">🇨🇳 中文</option>
         <option value="en">🇬🇧 English</option>
       </select>
-      <button class="btn btn-outline btn-sm" onclick="loadDemo()" data-i18n="loadDemo">📦 载入范例</button>
       <button class="btn btn-danger btn-sm" onclick="if(confirm(T('confirmReset'))){localStorage.removeItem(KEY);location.reload();}" data-i18n="reset">🗑️ 清空重来</button>
     </div>
   </div>
@@ -400,13 +399,13 @@
 <div class="api-bar">
   <div class="api-bar-inner">
     <span class="api-icon">🔑</span>
-    <span class="api-label">Gemini API Key</span>
-    <input type="password" id="gemini-api-key" placeholder="AIzaSy... (仅存本地浏览器)"
+    <span class="api-label" data-i18n="apiKeyLabel">Gemini API Key</span>
+    <input type="password" id="gemini-api-key" data-i18n-ph="apiKeyPh" placeholder="AIzaSy... (仅存本地浏览器)"
            oninput="onApiKeyChange(this.value)"
            onblur="maybeHideKey()">
-    <button id="api-key-edit-btn" type="button" onclick="editApiKey()" style="display:none;padding:3px 10px;border-radius:6px;background:#334155;border:none;color:#e8ecf4;font-size:0.72rem;cursor:pointer">修改</button>
-    <span id="api-status" class="api-status api-off">○ 未启用</span>
-    <a href="https://aistudio.google.com/apikey" target="_blank" class="api-link">免费申请 →</a>
+    <button id="api-key-edit-btn" type="button" onclick="editApiKey()" style="display:none;padding:3px 10px;border-radius:6px;background:#334155;border:none;color:#e8ecf4;font-size:0.72rem;cursor:pointer" data-i18n="edit">修改</button>
+    <span id="api-status" class="api-status api-off" data-i18n="apiOff">○ 未启用</span>
+    <a href="https://aistudio.google.com/apikey" target="_blank" class="api-link" data-i18n="freeApply">免费申请 →</a>
   </div>
 </div>
 
@@ -415,16 +414,16 @@
   <!-- ═════ 步骤 1 · 主题 + 视觉风格 ═════ -->
   <div class="phase phase-c1">
     <div class="phase-head">
-      <span class="phase-num">步骤 1</span>
+      <span class="phase-num" data-i18n="step1">步骤 1</span>
       <div>
-        <div class="phase-title">📋 主题 · 视觉风格</div>
-        <div class="phase-desc">定全局美学基因（标题/署名 → 内容来源 → 风格 → 镜头光影）</div>
+        <div class="phase-title" data-i18n="p1Title">📋 作品标题</div>
+        <div class="phase-desc" data-i18n="p1Desc">输入作品标题与幕数</div>
       </div>
     </div>
 
     <!-- ① 作品标题 -->
-    <label>作品标题</label>
-    <input type="text" id="g-title" placeholder="例：草船借箭">
+    <label data-i18n="titleLabel">作品标题</label>
+    <input type="text" id="g-title" data-i18n-ph="titlePh" placeholder="例：草船借箭">
     <!-- 以下为兼容脚本而保留的隐藏字段 -->
     <input type="hidden" id="g-author" value="">
     <textarea id="g-theme" style="display:none"></textarea>
@@ -432,12 +431,12 @@
     <!-- ② 内容来源 -->
     <div style="margin-top:14px;padding:14px 16px;background:var(--bg2);border:1px dashed var(--phase-accent);border-radius:10px">
       <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
-        <strong style="font-size:0.85rem;color:var(--phase-accent);margin-right:4px">📘 NotebookLM 工作流</strong>
+        <strong style="font-size:0.85rem;color:var(--phase-accent);margin-right:4px" data-i18n="nbmWorkflow">📘 NotebookLM 工作流</strong>
         <label class="radio-pill active" id="pill-nbm" style="display:none">
           <input type="radio" name="src-mode" value="notebooklm" checked>
           <span>📘 NotebookLM</span>
         </label>
-        <span style="margin-left:10px;font-size:0.75rem;color:var(--muted)">幕数</span>
+        <span style="margin-left:10px;font-size:0.75rem;color:var(--muted)" data-i18n="numScenes">幕数</span>
         <input type="number" id="g-num-scenes" value="5" min="2" max="12" style="width:54px;text-align:center" oninput="onNumScenesChange()">
       </div>
       <div id="source-text-wrap" style="display:none !important;margin-top:10px">
@@ -482,13 +481,13 @@
     <div class="phase-head">
       <span class="phase-num">NotebookLM</span>
       <div>
-        <div class="phase-title">📘 NotebookLM 指令生成</div>
-        <div class="phase-desc">把下面的 Prompt 复制到 NotebookLM，让它根据你上传的课文产出分镜插图大纲</div>
+        <div class="phase-title" data-i18n="nbmPanelTitle">📘 NotebookLM 指令生成</div>
+        <div class="phase-desc" data-i18n="nbmPanelDesc">把下面的 Prompt 复制到 NotebookLM，让它根据你上传的课文产出分镜插图大纲</div>
       </div>
     </div>
     <div class="btn-row" style="margin-bottom:10px">
-      <button class="btn btn-primary btn-sm" onclick="generateNbmPrompt()">⚡ 生成 NotebookLM Prompt</button>
-      <button class="btn btn-green btn-sm" onclick="copyText(document.getElementById('nbm-out').textContent)">📋 复制给 NotebookLM</button>
+      <button class="btn btn-primary btn-sm" onclick="generateNbmPrompt()" data-i18n="nbmGenBtn">⚡ 生成 NotebookLM Prompt</button>
+      <button class="btn btn-green btn-sm" onclick="copyText(document.getElementById('nbm-out').textContent)" data-i18n="nbmCopyBtn">📋 复制给 NotebookLM</button>
     </div>
     <div class="hint" data-i18n="nbmHint">💡 NotebookLM 会自动依据你上传的课文素材，给出 N 页简报插图建议</div>
     <div class="prompt-out" id="nbm-out" style="margin-top:10px;font-size:0.85rem;min-height:140px;white-space:pre-wrap"></div>
@@ -554,47 +553,47 @@
   <!-- ═════ 步骤 4 · 语音字幕（含可选封面/主题曲） ═════ -->
   <div class="phase phase-c4" id="phase-extras">
     <div class="phase-head">
-      <span class="phase-num">步骤 4</span>
+      <span class="phase-num" data-i18n="step4">步骤 4</span>
       <div>
-        <div class="phase-title">🎙️ 语音 · 字幕</div>
-        <div class="phase-desc">旁白 → TTS → 上传音频转 SRT → 按幕切割打包；封面/主题曲为选用</div>
+        <div class="phase-title" data-i18n="p4Title">🎙️ 语音 · 字幕</div>
+        <div class="phase-desc" data-i18n="p4Desc">旁白 → TTS → 上传音频转 SRT → 按幕切割打包</div>
       </div>
     </div>
     <div class="btn-row" style="margin-bottom:12px">
-      <button class="btn btn-amber" onclick="toggleExtra('voice')">🎙️ 生成语音 + 字幕</button>
+      <button class="btn btn-amber" onclick="toggleExtra('voice')" data-i18n="voiceToggle">🎙️ 生成语音 + 字幕</button>
     </div>
 
     <!-- 🎙️ 语音 + 字幕 -->
     <div class="extra-block" id="extra-voice" style="display:none">
       <div class="extra-head">
-        <span class="extra-title"><span class="emoji">🎙️</span>旁白文案</span>
+        <span class="extra-title"><span class="emoji">🎙️</span><span data-i18n="narrTitle">旁白文案</span></span>
         <div class="btn-row">
-          <button class="btn btn-primary btn-sm" onclick="generateNarration()">⚡ 重新生成</button>
-          <button class="btn btn-green btn-sm" onclick="copyText(document.getElementById('narration-out').value)">📋 复制给 Google AI Studio</button>
+          <button class="btn btn-primary btn-sm" onclick="generateNarration()" data-i18n="regen">⚡ 重新生成</button>
+          <button class="btn btn-green btn-sm" onclick="copyText(document.getElementById('narration-out').value)" data-i18n="copyStudio">📋 复制给 Google AI Studio</button>
         </div>
       </div>
       <div class="row-flex" style="margin-top:6px">
-        <span style="font-size:0.76rem;color:var(--muted)">风格：</span>
+        <span style="font-size:0.76rem;color:var(--muted)" data-i18n="styleLabel">风格：</span>
         <label class="radio-pill active" id="pill-len-std">
-          <input type="radio" name="nar-len" value="std" checked onchange="setNarrationLen('std')"><span>📖 原文旁白</span>
+          <input type="radio" name="nar-len" value="std" checked onchange="setNarrationLen('std')"><span data-i18n="narrStd">📖 原文旁白</span>
         </label>
         <label class="radio-pill" id="pill-len-rich">
-          <input type="radio" name="nar-len" value="rich" onchange="setNarrationLen('rich')"><span>✨ 生动旁白</span>
+          <input type="radio" name="nar-len" value="rich" onchange="setNarrationLen('rich')"><span data-i18n="narrRich">✨ 生动旁白</span>
         </label>
       </div>
-      <div class="hint">① 生成旁白 → ② 选声线一键转语音 → ③ 试听满意 → ④ 转字幕 → ⑤ 按幕切割打包</div>
-      <textarea id="narration-out" rows="6" style="margin-top:8px" placeholder="旁白将自动产出，可手动编辑"></textarea>
+      <div class="hint" data-i18n="voiceFlow">① 生成旁白 → ② 选声线一键转语音 → ③ 试听满意 → ④ 转字幕 → ⑤ 按幕切割打包</div>
+      <textarea id="narration-out" rows="6" style="margin-top:8px" data-i18n-ph="narrPh" placeholder="旁白将自动产出，可手动编辑"></textarea>
 
       <!-- 🎤 Gemini TTS 直接生成语音 -->
       <div style="margin-top:14px;padding:12px;background:var(--phase-inner-2);border-radius:8px;border:1px dashed var(--phase-accent-solid)">
         <div class="extra-head" style="margin-bottom:8px">
-          <span class="extra-title"><span class="emoji">🎤</span>一键转语音</span>
-          <div class="ai-only-hide" style="font-size:0.72rem;color:#dc2626">⚠️ 请先在顶部填入 API Key</div>
+          <span class="extra-title"><span class="emoji">🎤</span><span data-i18n="ttsTitle">一键转语音</span></span>
+          <div class="ai-only-hide" style="font-size:0.72rem;color:#dc2626" data-i18n="needApiKey">⚠️ 请先在顶部填入 API Key</div>
         </div>
 
         <div class="grid-2" style="gap:10px">
           <div>
-            <label>🎭 声线（Gemini 全部 30 种，已分类）</label>
+            <label data-i18n="voiceLineLabel">🎭 声线（Gemini 全部 30 种，已分类）</label>
             <select id="gemini-voice">
               <optgroup label="── 🌸 说故事 · 温暖抒情 ──">
                 <option value="Aoede" selected>Aoede · 温柔说故事（女，首推）</option>
@@ -639,40 +638,48 @@
             </select>
           </div>
           <div>
-            <label>🎨 语气描述（可选）</label>
-            <input type="text" id="gemini-style" placeholder="例：温柔缓慢地讲述 / 像说睡前故事 / 欢快活泼">
+            <label data-i18n="toneLabel">🎨 语气描述（可选）</label>
+            <input type="text" id="gemini-style" data-i18n-ph="tonePh" placeholder="例：温柔缓慢地讲述 / 像说睡前故事 / 欢快活泼（中/英/马来文皆可）">
+            <div class="btn-row" style="margin-top:6px;flex-wrap:wrap;gap:4px">
+              <button type="button" class="btn btn-outline btn-sm" onclick="setTonePreset('warm')" data-i18n="toneWarm">温暖亲切</button>
+              <button type="button" class="btn btn-outline btn-sm" onclick="setTonePreset('energetic')" data-i18n="toneEnergetic">热血活力</button>
+              <button type="button" class="btn btn-outline btn-sm" onclick="setTonePreset('mystery')" data-i18n="toneMystery">神秘探险</button>
+              <button type="button" class="btn btn-outline btn-sm" onclick="setTonePreset('pro')" data-i18n="tonePro">专业知性</button>
+              <button type="button" class="btn btn-outline btn-sm" onclick="setTonePreset('nostalgic')" data-i18n="toneNostalgic">怀念感性</button>
+              <button type="button" class="btn btn-outline btn-sm" onclick="setTonePreset('playful')" data-i18n="tonePlayful">俏皮捣蛋</button>
+            </div>
             <div class="btn-row" style="margin-top:6px">
-              <button class="btn btn-outline btn-sm" onclick="testVoice()">▶️ 试听当前声线</button>
+              <button class="btn btn-outline btn-sm" onclick="testVoice()" data-i18n="testVoice">▶️ 试听当前声线</button>
               <span id="voice-test-status" style="font-size:0.72rem;color:var(--muted);align-self:center"></span>
             </div>
           </div>
         </div>
         <div class="btn-row" style="margin-top:10px">
-          <button class="btn btn-primary btn-sm" onclick="geminiTTSGenerate()">🎤 一键生成语音</button>
-          <a class="btn btn-amber btn-sm" href="https://aistudio.google.com/generate-speech" target="_blank" style="text-decoration:none">🌐 去 Google AI Studio 试听</a>
-          <button class="btn btn-green btn-sm" id="tts-to-srt-btn" style="display:none" onclick="ttsAudioToSRT()">📝 将这段语音转字幕</button>
-          <button class="btn btn-cyan btn-sm" id="tts-download-btn" style="display:none" onclick="downloadTTSAudio()">⬇️ 下载 WAV</button>
+          <button class="btn btn-primary btn-sm" onclick="geminiTTSGenerate()" data-i18n="ttsGen">🎤 一键生成语音</button>
+          <a class="btn btn-amber btn-sm" href="https://aistudio.google.com/generate-speech" target="_blank" style="text-decoration:none" data-i18n="toStudio">🌐 去 Google AI Studio 试听</a>
+          <button class="btn btn-green btn-sm" id="tts-to-srt-btn" style="display:none" onclick="ttsAudioToSRT()" data-i18n="ttsToSrt">📝 将这段语音转字幕</button>
+          <button class="btn btn-cyan btn-sm" id="tts-download-btn" style="display:none" onclick="downloadTTSAudio()" data-i18n="downloadWav">⬇️ 下载 WAV</button>
         </div>
-        <div class="hint" style="margin-top:6px">💡 Gemini 免费版限 10 次/分钟；超限可先到 Google AI Studio 生成，再下载 WAV 回来转字幕</div>
+        <div class="hint" style="margin-top:6px" data-i18n="ttsHint">💡 Gemini 免费版限 10 次/分钟；超限可先到 Google AI Studio 生成，再下载 WAV 回来转字幕</div>
         <div id="tts-status" style="margin-top:8px;font-size:0.82rem;color:var(--muted)"></div>
         <audio id="tts-player" controls style="display:none;width:100%;margin-top:10px"></audio>
       </div>
 
       <div style="margin-top:14px;padding-top:14px;border-top:1px dashed var(--phase-accent-solid)">
         <div class="extra-head">
-          <span class="extra-title"><span class="emoji">🎧</span>语音转 SRT 字幕（上传既有录音）</span>
+          <span class="extra-title"><span class="emoji">🎧</span><span data-i18n="srtTitle">语音转 SRT 字幕（上传既有录音）</span></span>
           <div class="btn-row">
-            <button class="btn btn-green btn-sm" id="srt-dl-btn" style="display:none" onclick="downloadGeneratedSRT()">⬇️ 下载 .srt</button>
-            <button class="btn btn-outline btn-sm" id="srt-copy-btn" style="display:none" onclick="copyText(lastSRT)">📋 复制</button>
-            <button class="btn btn-primary btn-sm" id="split-audio-btn" style="display:none" onclick="splitAudioByScenes()">✂️ 按幕切割 + 打包下载</button>
+            <button class="btn btn-green btn-sm" id="srt-dl-btn" style="display:none" onclick="downloadGeneratedSRT()" data-i18n="downloadSrt">⬇️ 下载 .srt</button>
+            <button class="btn btn-outline btn-sm" id="srt-copy-btn" style="display:none" onclick="copyText(lastSRT)" data-i18n="copy">📋 复制</button>
+            <button class="btn btn-primary btn-sm" id="split-audio-btn" style="display:none" onclick="splitAudioByScenes()" data-i18n="splitZip">✂️ 按幕切割 + 打包下载</button>
           </div>
         </div>
-        <div class="hint">上传 mp3/wav → 浏览器本地 Whisper 转中文 SRT（首次下载约 150MB 模型）</div>
+        <div class="hint" data-i18n="srtHint">上传 mp3/wav → 浏览器本地 Whisper 转 SRT（首次下载约 150MB 模型）</div>
         <div class="row-flex" style="margin-top:10px;gap:14px;flex-wrap:wrap">
           <input type="file" id="audio-upload" accept="audio/*" onchange="handleAudioUpload(event)">
           <label style="display:inline-flex;align-items:center;gap:6px;font-size:0.82rem;color:var(--fg);cursor:pointer">
             <input type="checkbox" id="srt-use-text" checked style="width:16px;height:16px">
-            📖 用旁白文本校正
+            <span data-i18n="srtUseText">📖 用旁白文本校正</span>
           </label>
         </div>
         <div id="srt-status" style="margin-top:8px;font-size:0.82rem;color:var(--muted)"></div>
@@ -3296,8 +3303,16 @@ if (__narrEl) {
 // ═════════════════════════════════════════════════════════════
 const I18N = {
   zh: {
-    loadDemo: '📦 载入范例', reset: '🗑️ 清空重来',
-    confirmReset: '确定清空所有资料？',
+    appTitle: 'AI 制作动画视频 Studio',
+    reset: '🗑️ 清空重来', confirmReset: '确定清空所有资料？',
+    apiKeyLabel: 'Gemini API Key', apiKeyPh: 'AIzaSy... (仅存本地浏览器)',
+    edit: '修改', apiOff: '○ 未启用', apiOn: '● 已启用', freeApply: '免费申请 →',
+    step1: '步骤 1', p1Title: '📋 作品标题', p1Desc: '输入作品标题与幕数',
+    titleLabel: '作品标题', titlePh: '例：草船借箭',
+    nbmWorkflow: '📘 NotebookLM 工作流', numScenes: '幕数',
+    nbmPanelTitle: '📘 NotebookLM 指令生成',
+    nbmPanelDesc: '把下面的 Prompt 复制到 NotebookLM，让它根据你上传的课文产出分镜插图大纲',
+    nbmGenBtn: '⚡ 生成 NotebookLM Prompt', nbmCopyBtn: '📋 复制给 NotebookLM',
     nbmHint: '💡 NotebookLM 会自动依据你上传的课文素材，给出 N 页简报插图建议',
     nbmPasteTitle: '📥 贴入 NotebookLM 回传的大纲',
     nbmParseBtn: '✨ 解析 → 生成旁白',
@@ -3305,19 +3320,86 @@ const I18N = {
     nbmPastePh: '直接把 NotebookLM 产出的 5 页大纲贴在这里...',
     parsedOk: '已解析 {n} 页故事原文，旁白已生成 ✓',
     parsedEmpty: '未侦测到「故事原文」段落，请确认格式',
+    step4: '步骤 4', p4Title: '🎙️ 语音 · 字幕',
+    p4Desc: '旁白 → TTS → 上传音频转 SRT → 按幕切割打包',
+    voiceToggle: '🎙️ 生成语音 + 字幕',
+    narrTitle: '旁白文案', regen: '⚡ 重新生成', copyStudio: '📋 复制给 Google AI Studio',
+    styleLabel: '风格：', narrStd: '📖 原文旁白', narrRich: '✨ 生动旁白',
+    voiceFlow: '① 生成旁白 → ② 选声线一键转语音 → ③ 试听满意 → ④ 转字幕 → ⑤ 按幕切割打包',
+    narrPh: '旁白将自动产出，可手动编辑',
+    ttsTitle: '一键转语音', needApiKey: '⚠️ 请先在顶部填入 API Key',
+    voiceLineLabel: '🎭 声线（Gemini 全部 30 种，已分类）',
+    toneLabel: '🎨 语气描述（可选）',
+    tonePh: '例：温柔缓慢地讲述 / 像说睡前故事 / 欢快活泼（中/英/马来文皆可）',
+    toneWarm: '温暖亲切', toneEnergetic: '热血活力', toneMystery: '神秘探险',
+    tonePro: '专业知性', toneNostalgic: '怀念感性', tonePlayful: '俏皮捣蛋',
+    testVoice: '▶️ 试听当前声线', ttsGen: '🎤 一键生成语音', toStudio: '🌐 去 Google AI Studio 试听',
+    ttsToSrt: '📝 将这段语音转字幕', downloadWav: '⬇️ 下载 WAV',
+    ttsHint: '💡 Gemini 免费版限 10 次/分钟；超限可先到 Google AI Studio 生成，再下载 WAV 回来转字幕',
+    srtTitle: '语音转 SRT 字幕（上传既有录音）',
+    downloadSrt: '⬇️ 下载 .srt', copy: '📋 复制', splitZip: '✂️ 按幕切割 + 打包下载',
+    srtHint: '上传 mp3/wav → 浏览器本地 Whisper 转 SRT（首次下载约 150MB 模型）',
+    srtUseText: '📖 用旁白文本校正',
+    // tone preset prompt values (sent to Gemini TTS)
+    toneWarmVal: '温柔亲切地讲述，像说故事给家人听',
+    toneEnergeticVal: '充满热血与活力地讲述，语速明快有冲劲',
+    toneMysteryVal: '语气神秘低语，带一点探险的紧张与期待',
+    toneProVal: '清晰专业地讲解，沉稳知性像纪录片旁白',
+    toneNostalgicVal: '怀念感性地诉说，带一点温柔与淡淡忧愁',
+    tonePlayfulVal: '俏皮调皮地说话，语气夸张有戏，像卡通角色',
   },
   en: {
-    loadDemo: '📦 Load Demo', reset: '🗑️ Reset',
-    confirmReset: 'Clear all data?',
-    nbmHint: '💡 NotebookLM will produce N-page illustration outline from your uploaded source',
+    appTitle: 'AI Animation Video Studio',
+    reset: '🗑️ Reset', confirmReset: 'Clear all data?',
+    apiKeyLabel: 'Gemini API Key', apiKeyPh: 'AIzaSy... (stored locally only)',
+    edit: 'Edit', apiOff: '○ Disabled', apiOn: '● Enabled', freeApply: 'Get free key →',
+    step1: 'Step 1', p1Title: '📋 Project Title', p1Desc: 'Enter the title and number of scenes',
+    titleLabel: 'Project Title', titlePh: 'e.g. Borrowing Arrows with Straw Boats',
+    nbmWorkflow: '📘 NotebookLM Workflow', numScenes: 'Scenes',
+    nbmPanelTitle: '📘 Generate NotebookLM Prompt',
+    nbmPanelDesc: 'Copy the prompt below into NotebookLM — it will produce an illustrated outline from your source',
+    nbmGenBtn: '⚡ Generate NotebookLM Prompt', nbmCopyBtn: '📋 Copy for NotebookLM',
+    nbmHint: '💡 NotebookLM will produce an N-page illustration outline from your uploaded source',
     nbmPasteTitle: '📥 Paste NotebookLM response outline',
     nbmParseBtn: '✨ Parse → Build narration',
     nbmPasteHint: 'We will auto-extract each page\'s "Original story text" and fill the narration below',
     nbmPastePh: 'Paste the full NotebookLM outline here...',
     parsedOk: 'Parsed {n} pages of story text — narration ready ✓',
     parsedEmpty: 'No "Original story text" sections detected; please check format',
+    step4: 'Step 4', p4Title: '🎙️ Voice · Subtitles',
+    p4Desc: 'Narration → TTS → upload audio to SRT → split by scene & download',
+    voiceToggle: '🎙️ Generate voice + subtitles',
+    narrTitle: 'Narration script', regen: '⚡ Regenerate', copyStudio: '📋 Copy for Google AI Studio',
+    styleLabel: 'Style:', narrStd: '📖 Original text', narrRich: '✨ Enriched narration',
+    voiceFlow: '① Generate narration → ② pick voice & TTS → ③ preview → ④ to SRT → ⑤ split & bundle',
+    narrPh: 'Narration will appear here — you can edit freely',
+    ttsTitle: 'One-click voice', needApiKey: '⚠️ Please enter the API Key at the top first',
+    voiceLineLabel: '🎭 Voice (all 30 Gemini voices, categorised)',
+    toneLabel: '🎨 Tone description (optional)',
+    tonePh: 'e.g. warm storytelling / like a bedtime story / cheerful (Chinese, English, Malay all work)',
+    toneWarm: 'Warm & kind', toneEnergetic: 'Energetic', toneMystery: 'Mystery adventure',
+    tonePro: 'Professional', toneNostalgic: 'Nostalgic', tonePlayful: 'Playful & cheeky',
+    testVoice: '▶️ Preview voice', ttsGen: '🎤 Generate voice', toStudio: '🌐 Open Google AI Studio',
+    ttsToSrt: '📝 Convert this voice to subtitles', downloadWav: '⬇️ Download WAV',
+    ttsHint: '💡 Gemini free tier allows 10/min; over the limit — generate in AI Studio, download WAV and bring it back here',
+    srtTitle: 'Audio → SRT subtitles (upload recording)',
+    downloadSrt: '⬇️ Download .srt', copy: '📋 Copy', splitZip: '✂️ Split by scene + ZIP',
+    srtHint: 'Upload mp3/wav → local Whisper in browser produces SRT (first run downloads ~150MB model)',
+    srtUseText: '📖 Align with narration text',
+    toneWarmVal: 'warm and gentle storytelling, like telling a story to family',
+    toneEnergeticVal: 'energetic and fast-paced, full of drive and excitement',
+    toneMysteryVal: 'mysterious whisper with suspense and hint of adventure',
+    toneProVal: 'clear and professional narration, calm and intellectual like a documentary',
+    toneNostalgicVal: 'nostalgic and emotional, gentle with a faint touch of melancholy',
+    tonePlayfulVal: 'playful and cheeky, exaggerated like a cartoon character',
   }
 };
+function setTonePreset(key) {
+  const map = { warm:'toneWarmVal', energetic:'toneEnergeticVal', mystery:'toneMysteryVal', pro:'toneProVal', nostalgic:'toneNostalgicVal', playful:'tonePlayfulVal' };
+  const k = map[key]; if (!k) return;
+  const el = document.getElementById('gemini-style');
+  if (el) { el.value = T(k); try { save(); } catch(e){} }
+}
 let uiLang = localStorage.getItem('uiLang') || 'zh';
 function T(k) { return (I18N[uiLang] && I18N[uiLang][k]) || I18N.zh[k] || k; }
 function setUiLang(lang) {
@@ -3326,21 +3408,26 @@ function setUiLang(lang) {
   document.documentElement.lang = uiLang === 'en' ? 'en' : 'zh-CN';
   document.querySelectorAll('[data-i18n]').forEach(el => {
     const k = el.getAttribute('data-i18n');
-    if (I18N[uiLang][k]) el.textContent = I18N[uiLang][k];
+    if (I18N[uiLang][k] != null) el.textContent = I18N[uiLang][k];
   });
   document.querySelectorAll('[data-i18n-ph]').forEach(el => {
     const k = el.getAttribute('data-i18n-ph');
-    if (I18N[uiLang][k]) el.setAttribute('placeholder', I18N[uiLang][k]);
+    if (I18N[uiLang][k] != null) el.setAttribute('placeholder', I18N[uiLang][k]);
   });
+  // 同步浏览器 tab title
+  if (I18N[uiLang].appTitle) document.title = I18N[uiLang].appTitle;
   const sel = document.getElementById('ui-lang');
   if (sel) sel.value = uiLang;
-  // TTS 语气占位与 SRT 语言跟随
-  const st = document.getElementById('gemini-style');
-  if (st) st.placeholder = uiLang === 'en'
-    ? 'e.g. warm storytelling tone / bedtime story / cheerful'
-    : '例：温柔缓慢地讲述 / 像说睡前故事 / 欢快活泼 (中/英/马来文皆可)';
   // 重新生成 NBM prompt（语言跟随）
   try { if (typeof generateNbmPrompt === 'function') generateNbmPrompt(); } catch(e){}
+  // API 状态文字跟随
+  try {
+    const st = document.getElementById('api-status');
+    if (st) {
+      const on = st.classList.contains('api-on');
+      st.textContent = on ? I18N[uiLang].apiOn : I18N[uiLang].apiOff;
+    }
+  } catch(e){}
 }
 
 // ═════════════════════════════════════════════════════════════
