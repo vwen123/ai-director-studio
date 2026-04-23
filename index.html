@@ -439,9 +439,10 @@
         <span style="margin-left:10px;font-size:0.75rem;color:var(--muted)" data-i18n="numScenes">幕数</span>
         <input type="number" id="g-num-scenes" value="5" min="2" max="12" style="width:54px;text-align:center" oninput="onNumScenesChange()">
       </div>
-      <div id="source-text-wrap" style="display:none !important;margin-top:10px">
-        <label id="source-text-label" style="margin-top:0">课文 / 剧本原文</label>
-        <textarea id="g-source-text" rows="4" oninput="onSourceTextInput()"></textarea>
+      <!-- 课文/剧本原文已按需求移除，保留隐藏字段以兼容脚本 -->
+      <div id="source-text-wrap" style="display:none !important">
+        <label id="source-text-label"></label>
+        <textarea id="g-source-text" style="display:none" oninput="onSourceTextInput()"></textarea>
       </div>
       <!-- 仅标题模式：故事草稿预览 / 编辑（NBM 模式不使用） -->
       <div id="story-draft-wrap" style="display:none !important;margin-top:10px;padding:12px;background:var(--bg);border:1px solid var(--phase-accent);border-radius:10px">
@@ -460,7 +461,8 @@
 
     <!-- ③ 视觉风格 -->
     <label style="margin-top:16px" data-i18n="styleHeader">🎨 视觉风格（点击后自动套用到 NotebookLM Prompt）</label>
-    <input class="style-search" id="style-search" type="text" data-i18n-ph="styleSearchPh" placeholder="🔍 搜索全部风格...">
+    <!-- 搜索框已按需求移除，保留隐藏字段以兼容脚本 -->
+    <input class="style-search" id="style-search" type="text" style="display:none">
     <div class="style-tabs" id="style-tabs"></div>
     <div class="style-grid" id="style-grid"></div>
     <div class="style-selected-bar">
@@ -1664,9 +1666,9 @@ function generateAll() {
 // ═════════════════════════════════════════════════════════════
 function toggleSourceMode() {
   const mode = document.querySelector('input[name="src-mode"]:checked')?.value || 'auto';
-  // 贴课文区：在 text / notebooklm 模式都显示
-  document.getElementById('source-text-wrap').style.display =
-    (mode === 'text' || mode === 'notebooklm') ? 'block' : 'none';
+  // 贴课文区已按需求永久隐藏
+  const _stw = document.getElementById('source-text-wrap');
+  if (_stw) _stw.style.display = 'none';
   // 调整贴课文区的提示文字
   const srcLabel = document.getElementById('source-text-label');
   if (srcLabel) {
