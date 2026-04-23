@@ -1,0 +1,3402 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI动画</title>
+<style>
+  :root {
+    --bg: #07070f;
+    --bg2: #0f0f1f;
+    --card: #14142a;
+    --card2: #1d1d38;
+    --border: #2b2b4d;
+    --text: #e8ecf4;
+    --muted: #8892b0;
+    --primary: #8b5cf6;
+    --primary-l: #c4b5fd;
+    --accent: #fbbf24;
+    --green: #10b981;
+    --cyan: #22d3ee;
+    --pink: #f472b6;
+    --red: #ef4444;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', -apple-system, system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 14px; }
+
+  /* Header */
+  .header {
+    background: linear-gradient(135deg, #1e1b4b 0%, #4c1d95 50%, #831843 100%);
+    padding: 24px 32px; border-bottom: 1px solid var(--border);
+  }
+  .header-inner { max-width: 1600px; margin: 0 auto; display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 16px; }
+  .header h1 { font-size: 1.7rem; font-weight: 700; color: #fff; }
+  .header p { color: #ddd6fe; font-size: 0.85rem; margin-top: 4px; max-width: 720px; }
+
+  .container { max-width: 1600px; margin: 0 auto; padding: 24px; }
+
+  /* Gemini API 顶栏 */
+  .api-bar {
+    background: linear-gradient(90deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 32px;
+  }
+  .api-bar-inner {
+    max-width: 1600px; margin: 0 auto;
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    font-size: 0.82rem;
+  }
+  .api-bar .api-icon { font-size: 1rem; }
+  .api-bar .api-label { color: #fbbf24; font-weight: 600; }
+  .api-bar input {
+    flex: 0 1 340px; background: rgba(255,255,255,0.08); border: 1px solid #334155;
+    color: #e8ecf4; padding: 6px 10px; border-radius: 6px; font-size: 0.82rem;
+  }
+  .api-bar input:focus { border-color: #fbbf24; outline: none; }
+  .api-bar .api-status { padding: 3px 10px; border-radius: 12px; font-size: 0.72rem; font-weight: 600; }
+  .api-bar .api-off { background: #374151; color: #9ca3af; }
+  .api-bar .api-on  { background: #10b981; color: #fff; }
+  .api-bar .api-checking { background: #f59e0b; color: #fff; }
+  .api-bar .api-link { color: #67e8f9; text-decoration: none; font-size: 0.78rem; }
+  .api-bar .api-link:hover { text-decoration: underline; }
+  .api-bar .api-hint { color: #94a3b8; font-size: 0.72rem; flex: 1; min-width: 200px; }
+
+  /* AI-on 时显示，AI-off 时隐藏的元素 */
+  body:not(.ai-ready) .ai-only { display: none !important; }
+  body.ai-ready .ai-only-hide { display: none !important; }
+
+  /* Phase Cards — 淡色系板块（底层仍保持深色） */
+  .phase {
+    /* 板块内部重映射 CSS 变量 → 淡色主题 */
+    --bg:     var(--phase-inner, #fdfcfe);
+    --bg2:    var(--phase-inner-2, #f6f2fb);
+    --card:   var(--phase-inner, #ffffff);
+    --card2:  var(--phase-inner-2, #f1ebf7);
+    --border: var(--phase-border, #e2d8ed);
+    --text:   #1f2937;
+    --muted:  #6b7280;
+
+    background: var(--phase-bg, #fdfcfe);
+    border: 1px solid var(--phase-border, #e2d8ed);
+    border-left: 6px solid var(--phase-accent-solid, #8b5cf6);
+    border-radius: 14px;
+    padding: 22px; margin-bottom: 22px;
+    color: #1f2937;
+    box-shadow: 0 2px 14px rgba(0, 0, 0, 0.25);
+  }
+  .phase-head {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 16px; padding-bottom: 12px;
+    border-bottom: 1px solid var(--phase-border, #e2d8ed);
+  }
+  .phase-num {
+    background: var(--phase-accent-solid, #8b5cf6);
+    color: #1f2937; border-radius: 8px; padding: 5px 12px;
+    font-weight: 700; font-size: 0.78rem; letter-spacing: 0.05em;
+  }
+  .phase-title { font-size: 1.1rem; font-weight: 700; color: #1f2937; }
+  .phase-desc  { font-size: 0.8rem; color: #6b7280; margin-top: 2px; }
+
+  /* 每步骤的淡色主题 — 整体贴近米白，协调柔和 */
+  .phase-c1 { --phase-accent-solid:#e8b8cd; --phase-bg:#fbf7f9; --phase-inner:#ffffff; --phase-inner-2:#f5edf1; --phase-border:#ead9e2; }  /* 淡粉米 */
+  .phase-c2 { --phase-accent-solid:#e8d49a; --phase-bg:#fbf8f1; --phase-inner:#ffffff; --phase-inner-2:#f5eeda; --phase-border:#ead9b0; }  /* 淡杏米 */
+  .phase-c3 { --phase-accent-solid:#bcd6be; --phase-bg:#f7faf6; --phase-inner:#ffffff; --phase-inner-2:#eaf1e8; --phase-border:#d4e1d3; }  /* 淡绿米 */
+  .phase-c4 { --phase-accent-solid:#aeccdc; --phase-bg:#f6f9fb; --phase-inner:#ffffff; --phase-inner-2:#e7eff3; --phase-border:#cfdde4; }  /* 淡青米 */
+  .phase-cx { --phase-accent-solid:#c9c0e0; --phase-bg:#f8f6fb; --phase-inner:#ffffff; --phase-inner-2:#ece7f2; --phase-border:#d8d0e4; }  /* 淡紫米 */
+  .phase-nb { --phase-accent-solid:#a8d2d8; --phase-bg:#f5fafa; --phase-inner:#ffffff; --phase-inner-2:#e4eeee; --phase-border:#c9dcdc; }  /* 淡青绿米 */
+
+  /* 板块内部的通用元件调整 —— 深色变量已重映射，但要修一些硬编码 */
+  .phase label { color: #6b7280; }
+  .phase input, .phase textarea, .phase select {
+    background: #ffffff; border: 1px solid var(--phase-border, #d1d5db); color: #1f2937;
+  }
+  .phase input:focus, .phase textarea:focus, .phase select:focus {
+    border-color: var(--phase-accent-solid); box-shadow: 0 0 0 2px rgba(0,0,0,0.05);
+  }
+  .phase .hint { color: #6b7280; }
+  .phase .hint code { background: #f3f4f6; color: #7c3aed; }
+
+  /* Prompt-out 在淡色板块里变浅底 */
+  .phase .prompt-out {
+    background: #faf7fd; border: 1px solid var(--phase-border, #e2d8ed);
+    color: #4c1d95;
+  }
+  .phase .prompt-out:empty::before { color: #9ca3af; }
+
+  /* Scene head 改浅色渐变 */
+  .phase .scene-head {
+    background: linear-gradient(90deg, var(--phase-inner-2), var(--phase-bg));
+    color: #1f2937;
+  }
+  .phase .scene-head input { color: #1f2937; }
+  .phase .scene-num { background: var(--phase-accent-solid); color: #1f2937; }
+
+  /* Char / Scene 子卡片 */
+  .phase .char-card, .phase .scene-card, .phase .extra-block,
+  .phase .frame-box, .phase .video-dims {
+    background: var(--phase-inner-2); border: 1px solid var(--phase-border);
+  }
+  .phase .video-dims h4 { color: #0e7490; }
+  .phase .frame-box.start h4 { color: #b45309; }
+  .phase .frame-box.end   h4 { color: #be185d; }
+
+  /* 角色 chip */
+  .phase .char-chip { background: #ffffff; color: #6b7280; border-color: var(--phase-border); }
+
+  /* Style grid */
+  .phase .style-grid { background: var(--phase-inner-2); border-color: var(--phase-border); }
+  .phase .style-item { background: #ffffff; color: #374151; }
+  .phase .style-item:hover { background: var(--phase-bg); border-color: var(--phase-accent-solid); }
+  .phase .style-selected-bar { background: var(--phase-inner-2); border-color: var(--phase-accent-solid); color: #374151; }
+  .phase .style-tabs { background: var(--phase-inner-2); }
+  .phase .style-tab { color: #6b7280; }
+  .phase .style-tab:hover { background: #ffffff; color: #1f2937; }
+
+  /* Radio pill */
+  .phase .radio-pill { background: #ffffff; border-color: var(--phase-border); color: #374151; }
+  .phase .radio-pill:hover { border-color: var(--phase-accent-solid); }
+  .phase .radio-pill.active {
+    background: var(--phase-accent-solid); border-color: var(--phase-accent-solid);
+    color: #1f2937;
+  }
+
+  /* 按钮在淡色板块内：outline 按钮要变深字 */
+  .phase .btn-outline { border: 1px solid #cbd5e1; color: #374151; background: #ffffff; }
+  .phase .btn-outline:hover { border-color: var(--phase-accent-solid); color: #1f2937; background: var(--phase-bg); }
+
+  /* 表格 */
+  .phase .table-wrap { border-color: var(--phase-border); }
+  .phase th { background: var(--phase-inner-2); color: #374151; border-bottom: 2px solid var(--phase-border); }
+  .phase td { border-bottom: 1px solid var(--phase-border); color: #1f2937; }
+  .phase td.code { color: #6d28d9; }
+  .phase tr:hover td { background: var(--phase-bg); }
+
+
+  /* Forms */
+  label { display: block; font-size: 0.75rem; color: var(--muted); margin-bottom: 4px; margin-top: 10px; font-weight: 500; }
+  input, textarea, select {
+    width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+    padding: 8px 11px; color: var(--text); font-size: 0.85rem; font-family: inherit;
+    transition: border-color 0.15s;
+  }
+  input:focus, textarea:focus, select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(139,92,246,.15); }
+  textarea { resize: vertical; min-height: 60px; line-height: 1.55; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+
+  /* Buttons */
+  .btn {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 8px 16px; border-radius: 7px; font-size: 0.82rem; font-weight: 600;
+    border: none; cursor: pointer; transition: all 0.15s; white-space: nowrap;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn-primary { background: linear-gradient(135deg, var(--primary), #a855f7); color: #fff; }
+  .btn-primary:hover { filter: brightness(1.15); }
+  .btn-green { background: var(--green); color: #fff; }
+  .btn-green:hover { background: #059669; }
+  .btn-amber { background: var(--accent); color: #111; }
+  .btn-amber:hover { background: #f59e0b; }
+  .btn-cyan { background: var(--cyan); color: #000; }
+  .btn-cyan:hover { background: #0891b2; color: #fff; }
+  .btn-pink { background: var(--pink); color: #fff; }
+  .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+  .btn-outline:hover { border-color: var(--primary); color: var(--primary-l); }
+  .btn-danger { background: transparent; color: var(--red); border: 1px solid #7f1d1d; }
+  .btn-danger:hover { background: #7f1d1d; color: #fff; }
+  .btn-sm { padding: 5px 11px; font-size: 0.73rem; }
+  .btn-row { display: flex; gap: 6px; flex-wrap: wrap; }
+
+  /* Style Picker */
+  .style-search {
+    width: 100%; margin-bottom: 10px;
+  }
+  .style-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 6px; max-height: 280px; overflow-y: auto;
+    background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 10px;
+  }
+  .style-grid::-webkit-scrollbar { width: 8px; }
+  .style-grid::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+  .style-item {
+    padding: 8px 10px; border-radius: 6px; font-size: 0.75rem;
+    background: var(--card2); border: 1px solid transparent; cursor: pointer;
+    transition: all 0.12s; text-align: center; user-select: none;
+  }
+  .style-item:hover { border-color: var(--primary-l); background: #2a2a4a; }
+  .style-item.selected {
+    background: linear-gradient(135deg, var(--primary), #ec4899);
+    color: #fff; font-weight: 600; border-color: var(--primary-l);
+  }
+  .style-selected-bar {
+    background: var(--bg2); border: 1px dashed var(--primary);
+    border-radius: 8px; padding: 10px; margin-top: 8px;
+    font-size: 0.8rem; min-height: 40px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  }
+  .style-chip-selected {
+    background: var(--primary); color: #fff;
+    border-radius: 14px; padding: 3px 10px; font-size: 0.72rem; font-weight: 600;
+  }
+
+  /* Characters */
+  .char-card {
+    background: var(--card2); border: 1px solid var(--border); border-radius: 10px;
+    padding: 14px; margin-bottom: 10px;
+  }
+  .char-head { display: flex; gap: 10px; align-items: center; margin-bottom: 8px; }
+  .char-dot { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; }
+
+  /* Scene Cards */
+  .scene-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+    margin-bottom: 16px; overflow: hidden;
+  }
+  .scene-head {
+    display: flex; align-items: center; gap: 10px;
+    background: linear-gradient(90deg, #1e1b4b, #312e81);
+    padding: 11px 16px; border-bottom: 1px solid var(--border);
+  }
+  .scene-num {
+    background: var(--primary); color: #fff; border-radius: 50%;
+    width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 0.9rem; flex-shrink: 0;
+  }
+  .scene-head input { flex: 1; background: transparent; border: none; font-size: 0.95rem; font-weight: 500; padding: 0; }
+  .scene-head input:focus { outline: none; }
+  .scene-body { padding: 18px; }
+
+  .chars-pick { display: flex; flex-wrap: wrap; gap: 6px; }
+  .char-chip {
+    padding: 4px 10px; border-radius: 14px; font-size: 0.72rem; cursor: pointer;
+    border: 1px solid var(--border); background: var(--bg); color: var(--muted);
+    font-weight: 500; transition: all 0.12s;
+  }
+  .char-chip.active { color: #fff; }
+
+  /* Frames */
+  .frame-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px; }
+  .frame-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 12px; }
+  .frame-box h4 { font-size: 0.8rem; font-weight: 700; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+  .frame-box.start h4 { color: var(--accent); }
+  .frame-box.end h4 { color: var(--pink); }
+
+  /* Video 5-dim table */
+  .video-dims { margin-top: 16px; background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 14px; }
+  .video-dims h4 { font-size: 0.82rem; font-weight: 700; color: var(--cyan); margin-bottom: 10px; }
+  .dim-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+
+  /* Prompt output boxes */
+  .prompt-out {
+    background: #050510; border: 1px solid var(--border); border-radius: 6px;
+    padding: 10px 12px; font-size: 0.74rem; color: #c4b5fd;
+    font-family: 'Menlo', 'Courier New', monospace;
+    white-space: pre-wrap; line-height: 1.6; word-break: break-word; min-height: 60px; margin-top: 8px;
+  }
+  .prompt-out:empty::before { content: "点「生成」即可产出..."; color: #3a3a5a; font-style: italic; }
+
+  /* Tables */
+  .table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid var(--border); max-height: 520px; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.76rem; min-width: 1000px; }
+  th { background: var(--card2); color: var(--primary-l); font-weight: 600; text-align: left;
+    padding: 10px 12px; border-bottom: 2px solid var(--border); position: sticky; top: 0; z-index: 2; font-size: 0.74rem; }
+  td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; line-height: 1.55; }
+  td.code { font-family: 'Menlo', 'Courier New', monospace; color: #c4b5fd; font-size: 0.7rem; max-width: 300px; }
+  tr:hover td { background: rgba(139,92,246,0.05); }
+
+  /* Extras */
+  .extra-block {
+    background: var(--bg2); border: 1px solid var(--border); border-radius: 10px;
+    padding: 14px; margin-bottom: 12px;
+  }
+  .extra-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .extra-title { font-weight: 700; font-size: 0.9rem; }
+  .extra-title .emoji { margin-right: 4px; }
+
+  /* Toast */
+  .toast {
+    position: fixed; bottom: 24px; right: 24px;
+    background: var(--green); color: #fff; padding: 11px 20px;
+    border-radius: 8px; font-size: 0.85rem; font-weight: 600;
+    z-index: 9999; opacity: 0; transition: opacity .25s; pointer-events: none;
+  }
+  .toast.show { opacity: 1; }
+
+  .hint { font-size: 0.76rem; color: var(--muted); line-height: 1.55; margin-top: 6px; }
+  .hint code { background: var(--bg); padding: 2px 6px; border-radius: 3px; color: var(--accent); font-family: Menlo, monospace; font-size: 0.72rem; }
+
+  .row-flex { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .split { display: flex; justify-content: space-between; align-items: center; }
+
+  /* 胶囊式 radio */
+  .radio-pill {
+    display: inline-flex !important; align-items: center; gap: 6px;
+    padding: 6px 14px; background: var(--card2); border: 1px solid var(--border);
+    border-radius: 20px; cursor: pointer; font-size: 0.82rem; white-space: nowrap;
+    width: auto !important; margin: 0; transition: all 0.15s;
+  }
+  .radio-pill input[type="radio"] {
+    width: auto !important; margin: 0; accent-color: var(--primary);
+  }
+  .radio-pill:hover { border-color: var(--primary-l); }
+  .radio-pill.active {
+    background: linear-gradient(135deg, var(--primary), #a855f7);
+    border-color: var(--primary); color: #fff; font-weight: 600;
+  }
+
+  /* 分组标签 */
+  .style-tabs {
+    display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 8px;
+    padding: 4px; background: var(--bg2); border-radius: 8px;
+  }
+  .style-tab {
+    padding: 6px 12px; border-radius: 6px; font-size: 0.76rem; font-weight: 500;
+    cursor: pointer; background: transparent; border: none; color: var(--muted);
+    transition: all 0.12s;
+  }
+  .style-tab:hover { color: var(--text); background: var(--card2); }
+  .style-tab.active {
+    background: linear-gradient(135deg, var(--primary), #a855f7); color: #fff; font-weight: 600;
+  }
+
+  /* 巨型一键按钮 */
+  .mega-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 22px; border-radius: 10px; font-size: 0.9rem; font-weight: 700;
+    background: linear-gradient(135deg, #f59e0b, #ec4899, #8b5cf6);
+    color: #fff; border: none; cursor: pointer;
+    box-shadow: 0 4px 18px rgba(236, 72, 153, 0.35);
+    transition: all 0.15s;
+  }
+  .mega-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(236, 72, 153, 0.5); }
+  .mega-btn:active { transform: scale(0.97); }
+
+  @media (max-width: 900px) {
+    .grid-2, .grid-3, .grid-4, .frame-pair, .dim-grid { grid-template-columns: 1fr; }
+  }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <div>
+      <h1>AI动画</h1>
+    </div>
+    <div class="btn-row" style="align-items:center;gap:8px">
+      <select id="ui-lang" onchange="setUiLang(this.value)" style="padding:5px 8px;border-radius:6px;border:1px solid #334155;background:#1e293b;color:#e2e8f0;font-size:0.8rem">
+        <option value="zh">🇨🇳 中文</option>
+        <option value="en">🇬🇧 English</option>
+      </select>
+      <button class="btn btn-outline btn-sm" onclick="loadDemo()" data-i18n="loadDemo">📦 载入范例</button>
+      <button class="btn btn-danger btn-sm" onclick="if(confirm(T('confirmReset'))){localStorage.removeItem(KEY);location.reload();}" data-i18n="reset">🗑️ 清空重来</button>
+    </div>
+  </div>
+</div>
+
+<!-- Gemini API Key · 全局配置（开启 Gemini TTS 生成旁白语音） -->
+<div class="api-bar">
+  <div class="api-bar-inner">
+    <span class="api-icon">🔑</span>
+    <span class="api-label">Gemini API Key</span>
+    <input type="password" id="gemini-api-key" placeholder="AIzaSy... (仅存本地浏览器)"
+           oninput="onApiKeyChange(this.value)"
+           onblur="maybeHideKey()">
+    <button id="api-key-edit-btn" type="button" onclick="editApiKey()" style="display:none;padding:3px 10px;border-radius:6px;background:#334155;border:none;color:#e8ecf4;font-size:0.72rem;cursor:pointer">修改</button>
+    <span id="api-status" class="api-status api-off">○ 未启用</span>
+    <a href="https://aistudio.google.com/apikey" target="_blank" class="api-link">免费申请 →</a>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- ═════ 步骤 1 · 主题 + 视觉风格 ═════ -->
+  <div class="phase phase-c1">
+    <div class="phase-head">
+      <span class="phase-num">步骤 1</span>
+      <div>
+        <div class="phase-title">📋 主题 · 视觉风格</div>
+        <div class="phase-desc">定全局美学基因（标题/署名 → 内容来源 → 风格 → 镜头光影）</div>
+      </div>
+    </div>
+
+    <!-- ① 作品标题 -->
+    <label>作品标题</label>
+    <input type="text" id="g-title" placeholder="例：草船借箭">
+    <!-- 以下为兼容脚本而保留的隐藏字段 -->
+    <input type="hidden" id="g-author" value="">
+    <textarea id="g-theme" style="display:none"></textarea>
+
+    <!-- ② 内容来源 -->
+    <div style="margin-top:14px;padding:14px 16px;background:var(--bg2);border:1px dashed var(--phase-accent);border-radius:10px">
+      <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+        <strong style="font-size:0.85rem;color:var(--phase-accent);margin-right:4px">📘 NotebookLM 工作流</strong>
+        <label class="radio-pill active" id="pill-nbm" style="display:none">
+          <input type="radio" name="src-mode" value="notebooklm" checked>
+          <span>📘 NotebookLM</span>
+        </label>
+        <span style="margin-left:10px;font-size:0.75rem;color:var(--muted)">幕数</span>
+        <input type="number" id="g-num-scenes" value="5" min="2" max="12" style="width:54px;text-align:center" oninput="onNumScenesChange()">
+      </div>
+      <div id="source-text-wrap" style="display:none;margin-top:10px">
+        <label id="source-text-label" style="margin-top:0">课文 / 剧本原文（贴入后按句号切分成 N 幕，自动派生所有内容）</label>
+        <textarea id="g-source-text" rows="4" placeholder="贴你的课文、剧本或故事原文..." oninput="onSourceTextInput()"></textarea>
+      </div>
+      <!-- 仅标题模式：故事草稿预览 / 编辑（NBM 模式不使用） -->
+      <div id="story-draft-wrap" style="display:none !important;margin-top:10px;padding:12px;background:var(--bg);border:1px solid var(--phase-accent);border-radius:10px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <strong style="color:var(--phase-accent);font-size:0.85rem">📝 故事草稿（可逐幕修改，确认后才生成分镜与五维视频描述）</strong>
+          <div style="flex:1"></div>
+          <button class="btn-sm" onclick="regenerateStoryDraft()" title="用模板重新生成">🔄 重新生成</button>
+        </div>
+        <div id="story-draft-list"></div>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button class="mega-btn" onclick="confirmStoryDraft()">✓ 确认并生成分镜 + 五维视频</button>
+          <button class="btn-sm" onclick="cancelStoryDraft()">取消</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ③ 视觉风格 -->
+    <label style="margin-top:16px">🎨 视觉风格（点击后自动套用到所有 Prompt）</label>
+    <input class="style-search" id="style-search" type="text" placeholder="🔍 搜索全部风格...">
+    <div class="style-tabs" id="style-tabs"></div>
+    <div class="style-grid" id="style-grid"></div>
+    <div class="style-selected-bar">
+      <span style="color:var(--muted);font-size:0.78rem">已选：</span>
+      <span id="style-selected-label" style="color:var(--muted)">（未选，请点击上方选择）</span>
+    </div>
+
+    <!-- 以下为兼容脚本而保留的隐藏字段（镜头/光影/质感已按需求移除） -->
+    <select id="g-lens" style="display:none">
+      <option value="85mm lens, shallow depth of field" selected></option>
+    </select>
+    <select id="g-light" style="display:none">
+      <option value="golden hour, soft rim lighting, volumetric fog" selected></option>
+    </select>
+    <input type="hidden" id="g-quality" value="">
+  </div>
+
+  <!-- ═════ NotebookLM 专用分支（替代步骤 2/3） ═════ -->
+  <div class="phase phase-nb" id="phase-nbm" style="display:none">
+    <div class="phase-head">
+      <span class="phase-num">NotebookLM</span>
+      <div>
+        <div class="phase-title">📘 NotebookLM 指令生成</div>
+        <div class="phase-desc">把下面的 Prompt 复制到 NotebookLM，让它根据你上传的课文产出分镜插图大纲</div>
+      </div>
+    </div>
+    <div class="btn-row" style="margin-bottom:10px">
+      <button class="btn btn-primary btn-sm" onclick="generateNbmPrompt()">⚡ 生成 NotebookLM Prompt</button>
+      <button class="btn btn-green btn-sm" onclick="copyText(document.getElementById('nbm-out').textContent)">📋 复制给 NotebookLM</button>
+    </div>
+    <div class="hint" data-i18n="nbmHint">💡 NotebookLM 会自动依据你上传的课文素材，给出 N 页简报插图建议</div>
+    <div class="prompt-out" id="nbm-out" style="margin-top:10px;font-size:0.85rem;min-height:140px;white-space:pre-wrap"></div>
+
+    <!-- 📥 贴入 NotebookLM 生成的大纲，自动抽取「故事原文」生成旁白 -->
+    <div style="margin-top:16px;padding:14px;background:var(--phase-inner-2);border:1px dashed var(--phase-accent-solid);border-radius:10px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <strong style="color:var(--phase-accent);font-size:0.9rem" data-i18n="nbmPasteTitle">📥 贴入 NotebookLM 回传的大纲</strong>
+        <div style="flex:1"></div>
+        <button class="btn btn-primary btn-sm" onclick="parseNbmAndBuildNarration()" data-i18n="nbmParseBtn">✨ 解析 → 生成旁白</button>
+      </div>
+      <div class="hint" data-i18n="nbmPasteHint">贴上后会自动提取每页的「故事原文」，依序生成旁白文案并填到下方「🎙️ 语音 + 字幕」区</div>
+      <textarea id="nbm-paste" rows="10" style="margin-top:8px" data-i18n-ph="nbmPastePh" placeholder="直接把 NotebookLM 产出的 5 页大纲贴在这里..."></textarea>
+      <div id="nbm-parse-status" style="margin-top:6px;font-size:0.8rem;color:var(--muted)"></div>
+    </div>
+  </div>
+
+  <!-- ═════ 步骤 2 · 角色 ═════ -->
+  <div class="phase phase-c2" id="phase-chars" data-nbm-hide="1">
+    <div class="phase-head">
+      <span class="phase-num">步骤 2</span>
+      <div>
+        <div class="phase-title">👥 设定角色</div>
+        <div class="phase-desc">每个角色写一次明确的物理特征</div>
+      </div>
+    </div>
+    <div class="btn-row" style="margin-bottom:12px">
+      <button class="btn btn-primary btn-sm" onclick="addChar()">+ 新增角色</button>
+      <button class="btn btn-cyan btn-sm" onclick="autoGenerateCharacters()">🤖 模板生成角色</button>
+      <button class="btn btn-amber btn-sm" onclick="generateCharTurnaround()">⚡ 生成全部定装照 Prompts</button>
+    </div>
+    <div id="chars-wrap"></div>
+
+    <div id="char-turnaround-wrap" style="display:none;margin-top:16px">
+      <div class="extra-title"><span class="emoji">📸</span>角色定装照 Prompts（正面 / 背面 / 侧面）</div>
+      <div class="hint">送到 Nano Banana / Flow 生成后，就是每个角色的参考图。后续生图时可将参考图当附件喂进去</div>
+      <div class="table-wrap" style="margin-top:10px">
+        <table>
+          <thead><tr><th>角色</th><th style="color:var(--accent)">正面</th><th style="color:var(--cyan)">背面</th><th style="color:var(--pink)">侧面</th></tr></thead>
+          <tbody id="turnaround-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═════ 步骤 3 · 分镜脚本 ═════ -->
+  <div class="phase phase-c3" id="phase-scenes" data-nbm-hide="1">
+    <div class="phase-head">
+      <span class="phase-num">步骤 3</span>
+      <div>
+        <div class="phase-title">🎞️ 分镜脚本 · 首尾帧 + 视频五维</div>
+        <div class="phase-desc">每幕双画面 + 视频生成专用 5 维描述（内容/动作/环境/运镜/氛围）</div>
+      </div>
+    </div>
+    <div class="btn-row" style="margin-bottom:12px">
+      <button class="btn btn-primary btn-sm" onclick="addScene()">+ 新增一幕</button>
+      <button class="btn btn-green btn-sm" onclick="generateAll()">⚡ 全部一键生成 Prompt</button>
+      <button class="btn btn-outline btn-sm" onclick="document.getElementById('export-area').scrollIntoView({behavior:'smooth'})">⬇ 跳至导出</button>
+    </div>
+    <div id="scenes-wrap"></div>
+  </div>
+
+  <!-- ═════ 步骤 4 · 语音字幕（含可选封面/主题曲） ═════ -->
+  <div class="phase phase-c4" id="phase-extras">
+    <div class="phase-head">
+      <span class="phase-num">步骤 4</span>
+      <div>
+        <div class="phase-title">🎙️ 语音 · 字幕</div>
+        <div class="phase-desc">旁白 → TTS → 上传音频转 SRT → 按幕切割打包；封面/主题曲为选用</div>
+      </div>
+    </div>
+    <div class="btn-row" style="margin-bottom:12px">
+      <button class="btn btn-amber" onclick="toggleExtra('voice')">🎙️ 生成语音 + 字幕</button>
+    </div>
+
+    <!-- 🎙️ 语音 + 字幕 -->
+    <div class="extra-block" id="extra-voice" style="display:none">
+      <div class="extra-head">
+        <span class="extra-title"><span class="emoji">🎙️</span>旁白文案</span>
+        <div class="btn-row">
+          <button class="btn btn-primary btn-sm" onclick="generateNarration()">⚡ 重新生成</button>
+          <button class="btn btn-green btn-sm" onclick="copyText(document.getElementById('narration-out').value)">📋 复制给 Google AI Studio</button>
+        </div>
+      </div>
+      <div class="row-flex" style="margin-top:6px">
+        <span style="font-size:0.76rem;color:var(--muted)">风格：</span>
+        <label class="radio-pill active" id="pill-len-std">
+          <input type="radio" name="nar-len" value="std" checked onchange="setNarrationLen('std')"><span>📖 原文旁白</span>
+        </label>
+        <label class="radio-pill" id="pill-len-rich">
+          <input type="radio" name="nar-len" value="rich" onchange="setNarrationLen('rich')"><span>✨ 生动旁白</span>
+        </label>
+      </div>
+      <div class="hint">① 生成旁白 → ② 选声线一键转语音 → ③ 试听满意 → ④ 转字幕 → ⑤ 按幕切割打包</div>
+      <textarea id="narration-out" rows="6" style="margin-top:8px" placeholder="旁白将自动产出，可手动编辑"></textarea>
+
+      <!-- 🎤 Gemini TTS 直接生成语音 -->
+      <div style="margin-top:14px;padding:12px;background:var(--phase-inner-2);border-radius:8px;border:1px dashed var(--phase-accent-solid)">
+        <div class="extra-head" style="margin-bottom:8px">
+          <span class="extra-title"><span class="emoji">🎤</span>一键转语音</span>
+          <div class="ai-only-hide" style="font-size:0.72rem;color:#dc2626">⚠️ 请先在顶部填入 API Key</div>
+        </div>
+
+        <div class="grid-2" style="gap:10px">
+          <div>
+            <label>🎭 声线（Gemini 全部 30 种，已分类）</label>
+            <select id="gemini-voice">
+              <optgroup label="── 🌸 说故事 · 温暖抒情 ──">
+                <option value="Aoede" selected>Aoede · 温柔说故事（女，首推）</option>
+                <option value="Sulafat">Sulafat · 温暖亲切（女）</option>
+                <option value="Vindemiatrix">Vindemiatrix · 温和轻柔（女，适合睡前故事）</option>
+                <option value="Achird">Achird · 友善亲切（男）</option>
+                <option value="Callirrhoe">Callirrhoe · 随和温润（女）</option>
+                <option value="Achernar">Achernar · 柔软气音（女）</option>
+              </optgroup>
+              <optgroup label="── 📚 教学讲解 · 清晰专业 ──">
+                <option value="Charon">Charon · 沉稳讲解（男，纪录片感）</option>
+                <option value="Rasalgethi">Rasalgethi · 博学讲授（男，老师感）</option>
+                <option value="Sadaltager">Sadaltager · 知识渊博（男）</option>
+                <option value="Iapetus">Iapetus · 清晰标准（男）</option>
+                <option value="Erinome">Erinome · 清晰明朗（女）</option>
+                <option value="Schedar">Schedar · 平稳稳重（男）</option>
+              </optgroup>
+              <optgroup label="── 🎬 动画角色 · 活泼夸张 ──">
+                <option value="Puck">Puck · 俏皮调皮（男，卡通角色）</option>
+                <option value="Fenrir">Fenrir · 激动有戏（男，英雄/反派）</option>
+                <option value="Sadachbia">Sadachbia · 活灵活现（男）</option>
+                <option value="Laomedeia">Laomedeia · 活泼开朗（女）</option>
+                <option value="Leda">Leda · 年轻俏丽（女，学生/孩子角色）</option>
+                <option value="Pulcherrima">Pulcherrima · 前冲有力（女）</option>
+              </optgroup>
+              <optgroup label="── 🎤 主播播报 · 明亮清脆 ──">
+                <option value="Zephyr">Zephyr · 明亮播报（女）</option>
+                <option value="Autonoe">Autonoe · 明亮（女）</option>
+                <option value="Alnilam">Alnilam · 坚定播报（男）</option>
+                <option value="Kore">Kore · 坚定自信（女）</option>
+                <option value="Orus">Orus · 坚实有力（男）</option>
+              </optgroup>
+              <optgroup label="── 🧙 角色扮演 · 特色个性 ──">
+                <option value="Gacrux">Gacrux · 成熟智者（女，长者/奶奶）</option>
+                <option value="Algenib">Algenib · 低沉磁性（男）</option>
+                <option value="Enceladus">Enceladus · 气息感（男）</option>
+                <option value="Algieba">Algieba · 柔顺（男）</option>
+                <option value="Despina">Despina · 流畅顺滑（女）</option>
+                <option value="Umbriel">Umbriel · 随性（男）</option>
+                <option value="Zubenelgenubi">Zubenelgenubi · 闲适随意（男）</option>
+              </optgroup>
+            </select>
+          </div>
+          <div>
+            <label>🎨 语气描述（可选）</label>
+            <input type="text" id="gemini-style" placeholder="例：温柔缓慢地讲述 / 像说睡前故事 / 欢快活泼">
+            <div class="btn-row" style="margin-top:6px">
+              <button class="btn btn-outline btn-sm" onclick="testVoice()">▶️ 试听当前声线</button>
+              <span id="voice-test-status" style="font-size:0.72rem;color:var(--muted);align-self:center"></span>
+            </div>
+          </div>
+        </div>
+        <div class="btn-row" style="margin-top:10px">
+          <button class="btn btn-primary btn-sm" onclick="geminiTTSGenerate()">🎤 一键生成语音</button>
+          <a class="btn btn-amber btn-sm" href="https://aistudio.google.com/generate-speech" target="_blank" style="text-decoration:none">🌐 去 Google AI Studio 试听</a>
+          <button class="btn btn-green btn-sm" id="tts-to-srt-btn" style="display:none" onclick="ttsAudioToSRT()">📝 将这段语音转字幕</button>
+          <button class="btn btn-cyan btn-sm" id="tts-download-btn" style="display:none" onclick="downloadTTSAudio()">⬇️ 下载 WAV</button>
+        </div>
+        <div class="hint" style="margin-top:6px">💡 Gemini 免费版限 10 次/分钟；超限可先到 Google AI Studio 生成，再下载 WAV 回来转字幕</div>
+        <div id="tts-status" style="margin-top:8px;font-size:0.82rem;color:var(--muted)"></div>
+        <audio id="tts-player" controls style="display:none;width:100%;margin-top:10px"></audio>
+      </div>
+
+      <div style="margin-top:14px;padding-top:14px;border-top:1px dashed var(--phase-accent-solid)">
+        <div class="extra-head">
+          <span class="extra-title"><span class="emoji">🎧</span>语音转 SRT 字幕（上传既有录音）</span>
+          <div class="btn-row">
+            <button class="btn btn-green btn-sm" id="srt-dl-btn" style="display:none" onclick="downloadGeneratedSRT()">⬇️ 下载 .srt</button>
+            <button class="btn btn-outline btn-sm" id="srt-copy-btn" style="display:none" onclick="copyText(lastSRT)">📋 复制</button>
+            <button class="btn btn-primary btn-sm" id="split-audio-btn" style="display:none" onclick="splitAudioByScenes()">✂️ 按幕切割 + 打包下载</button>
+          </div>
+        </div>
+        <div class="hint">上传 mp3/wav → 浏览器本地 Whisper 转中文 SRT（首次下载约 150MB 模型）</div>
+        <div class="row-flex" style="margin-top:10px;gap:14px;flex-wrap:wrap">
+          <input type="file" id="audio-upload" accept="audio/*" onchange="handleAudioUpload(event)">
+          <label style="display:inline-flex;align-items:center;gap:6px;font-size:0.82rem;color:var(--fg);cursor:pointer">
+            <input type="checkbox" id="srt-use-text" checked style="width:16px;height:16px">
+            📖 用旁白文本校正
+          </label>
+        </div>
+        <div id="srt-status" style="margin-top:8px;font-size:0.82rem;color:var(--muted)"></div>
+        <div class="prompt-out" id="srt-preview" style="margin-top:8px;max-height:320px;overflow-y:auto"></div>
+      </div>
+    </div>
+
+    <!-- 🖼️ 封面 / 封底（NBM 模式不使用） -->
+    <div class="extra-block" id="extra-cover" style="display:none !important">
+      <div class="grid-2">
+        <div>
+          <div class="extra-head">
+            <span class="extra-title"><span class="emoji">🖼️</span>封面剧照 Prompt</span>
+            <div class="btn-row">
+              <button class="btn btn-primary btn-sm" onclick="generateCover('front')">⚡ 重新生成</button>
+              <button class="btn btn-outline btn-sm" onclick="copyText(document.getElementById('cover-front').textContent)">📋</button>
+            </div>
+          </div>
+          <div class="hint">图中：标题（左上）+「作者：<span id="author-preview-a">___</span>」（右下）</div>
+          <div class="prompt-out" id="cover-front"></div>
+        </div>
+
+        <div>
+          <div class="extra-head">
+            <span class="extra-title"><span class="emoji">🖼️</span>封底剧照 Prompt</span>
+            <div class="btn-row">
+              <button class="btn btn-primary btn-sm" onclick="generateCover('back')">⚡ 重新生成</button>
+              <button class="btn btn-outline btn-sm" onclick="copyText(document.getElementById('cover-back').textContent)">📋</button>
+            </div>
+          </div>
+          <div class="row-flex" style="margin-top:4px">
+            <label style="margin:0;flex:0 0 60px">封底标题</label>
+            <input type="text" id="back-title" placeholder="例：智慧永流传" style="flex:1">
+          </div>
+          <div class="prompt-out" id="cover-back"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 🎵 主题曲（NBM 模式不使用） -->
+    <div class="extra-block" id="extra-music" style="display:none !important">
+      <div class="extra-head">
+        <span class="extra-title"><span class="emoji">🎵</span>主题曲 Prompt（纯背景音乐，无人声）</span>
+        <div class="btn-row">
+          <button class="btn btn-primary btn-sm" onclick="generateMusic()">⚡ 重新生成</button>
+          <button class="btn btn-outline btn-sm" onclick="copyText(document.getElementById('music-out').textContent)">📋</button>
+        </div>
+      </div>
+      <div class="hint">贴到 Suno / Udio / Google MusicFX 生成。自动标注 instrumental only, no vocals</div>
+      <div class="prompt-out" id="music-out"></div>
+    </div>
+  </div>
+
+  <!-- ═════ 导出 · 分镜总表 ═════ -->
+  <div class="phase phase-cx" id="export-area">
+    <div class="phase-head">
+      <span class="phase-num">导出</span>
+      <div>
+        <div class="phase-title">📤 分镜总表（可复制 / 下载 CSV）</div>
+        <div class="phase-desc">包含每幕的 开始 Prompt / 结束 Prompt / 视频五维参数</div>
+      </div>
+    </div>
+    <div class="btn-row" style="margin-bottom:12px">
+      <button class="btn btn-green" onclick="renderExportTable()">🔄 更新总表</button>
+      <button class="btn btn-cyan" onclick="downloadCSV()">⬇️ 下载 CSV</button>
+      <button class="btn btn-amber" onclick="copyTSV()">📋 复制表格（贴 Excel/Sheets）</button>
+      <button class="btn btn-outline" onclick="copyFullReport()">📋 复制完整报告（所有内容）</button>
+    </div>
+    <div class="table-wrap">
+      <table id="export-table">
+        <thead>
+          <tr>
+            <th>幕</th><th>剧情</th><th>角色</th>
+            <th style="color:var(--accent)">开始画面 Prompt</th>
+            <th style="color:var(--pink)">结束画面 Prompt</th>
+            <th style="color:var(--cyan)">影片内容</th>
+            <th style="color:var(--cyan)">动态动作</th>
+            <th style="color:var(--cyan)">环境动态</th>
+            <th style="color:var(--cyan)">运镜过渡</th>
+            <th style="color:var(--cyan)">氛围音效</th>
+          </tr>
+        </thead>
+        <tbody id="export-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast">已复制 ✓</div>
+
+<script>
+// ═════════════════════════════════════════════════════════════
+//  视觉风格完整清单（中 → 英）
+// ═════════════════════════════════════════════════════════════
+const STYLE_GROUPS = [
+  { name: '⭐ 教学常用', items: [
+    ['3D皮克斯','3D Pixar style, cinematic'],
+    ['吉卜力','Studio Ghibli anime, soft watercolor, hand-drawn'],
+    ['动漫风','anime, Japanese animation'],
+    ['卡通风','cartoon style, playful'],
+    ['童话风','fairy tale storybook'],
+    ['绘本风','storybook illustration, warm and whimsical'],
+    ['水彩风','watercolor, soft washes'],
+    ['Q版','chibi, super deformed, cute'],
+    ['3D卡通','3D cartoon render'],
+    ['手绘风','hand-drawn illustration'],
+    ['扁平设计','flat design, 2D vector'],
+    ['漫画风','comic book style'],
+  ]},
+  { name: '🎬 3D / 动画', items: [
+    ['3D皮克斯','3D Pixar style, cinematic'],
+    ['3D卡通','3D cartoon render'],
+    ['3D写实','3D realistic render'],
+    ['吉卜力','Studio Ghibli anime, soft watercolor, hand-drawn'],
+    ['动漫风','anime, Japanese animation'],
+    ['美式漫画','American comic style, bold inks'],
+    ['欧式漫画','European comic, bande dessinée'],
+    ['低多边形','low poly, faceted geometry'],
+    ['等距视角','isometric view'],
+    ['动态模糊','motion blur'],
+    ['微缩模型风','tilt-shift miniature'],
+  ]},
+  { name: '✏️ 手绘 / 插画', items: [
+    ['水彩风','watercolor, soft washes'],
+    ['手绘风','hand-drawn illustration'],
+    ['速写风','sketch, pencil drawing'],
+    ['线稿风','line art, clean outlines'],
+    ['彩色素描','colored pencil sketch'],
+    ['炭笔风','charcoal drawing, black and white'],
+    ['粉彩风','pastel, chalky soft'],
+    ['油画风','oil painting, classical'],
+    ['压克力画风','acrylic painting, vibrant'],
+    ['厚涂风','impasto, thick paint strokes'],
+    ['平涂风','flat coloring, cel shading'],
+    ['版画风','printmaking, woodblock'],
+    ['绘本风','storybook illustration, warm and whimsical'],
+    ['童话风','fairy tale storybook'],
+    ['Q版','chibi, super deformed, cute'],
+  ]},
+  { name: '🖼️ 质感 / 工艺', items: [
+    ['黏土风','claymation, stop-motion'],
+    ['折纸风','origami, paper folded'],
+    ['纸雕风','paper cut art, layered paper'],
+    ['立体剪贴','3D paper craft'],
+    ['毛绒风','plush toy, fluffy texture'],
+    ['针织风','knitted yarn texture'],
+    ['彩色玻璃','stained glass, leaded segments'],
+    ['金属拉丝','brushed metal texture'],
+    ['拼贴艺术','collage art, mixed media'],
+    ['电路板风','circuit board, tech patterns'],
+  ]},
+  { name: '🔮 奇幻 / 科幻', items: [
+    ['奇幻风','fantasy, magical'],
+    ['科幻风','sci-fi, futuristic'],
+    ['赛博朋克','cyberpunk, neon, dystopian'],
+    ['蒸汽朋克','steampunk, Victorian mechanical'],
+    ['柴油朋克','dieselpunk, retro-futuristic'],
+    ['黑暗风','dark art, moody, grim'],
+    ['哥特风','gothic, ornate, dark'],
+    ['霓虹灯感','neon glow, synthwave'],
+    ['雾气迷蒙','misty, ethereal fog'],
+    ['极光感','aurora, iridescent'],
+    ['黑色电影','film noir, black and white, shadows'],
+    ['剪影风','silhouette, backlit'],
+  ]},
+  { name: '🎭 艺术流派', items: [
+    ['写实主义','realism, photorealistic'],
+    ['超写实主义','hyperrealism, ultra-detailed'],
+    ['印象派','impressionism, brush strokes, soft colors'],
+    ['后印象派','post-impressionism, Van Gogh style'],
+    ['表现主义','expressionism, emotional distortion'],
+    ['抽象艺术','abstract art'],
+    ['几何抽象','geometric abstraction'],
+    ['立体主义','cubism, fragmented geometry'],
+    ['未来主义','futurism, dynamic motion lines'],
+    ['达达主义','dadaism, surreal collage'],
+    ['超现实主义','surrealism, dreamlike'],
+    ['野兽派','fauvism, wild colors'],
+    ['浮世绘','ukiyo-e, Japanese woodblock'],
+    ['抽象表现主义','abstract expressionism'],
+    ['硬边绘画','hard-edge painting'],
+    ['半寫实风','semi-realistic'],
+  ]},
+  { name: '🏛️ 设计 / 复古', items: [
+    ['极简主义','minimalism, clean, simple'],
+    ['波普艺术','pop art, bold colors, comic dots'],
+    ['新艺术风','art nouveau, organic curves'],
+    ['装饰艺术','art deco, geometric luxury'],
+    ['包豪斯风','bauhaus, functional geometric'],
+    ['洛可可风','rococo, ornate pastel'],
+    ['苏联构成主义','soviet constructivism, propaganda'],
+    ['拜占庭风格','byzantine, gold mosaic'],
+    ['部落艺术','tribal art, ethnic patterns'],
+    ['复古风','retro, vintage'],
+    ['像素风','pixel art, 8-bit'],
+    ['怀旧像素风','retro pixel, 16-bit nostalgia'],
+    ['材质设计','material design, layered shadows'],
+    ['极繁主义','maximalism, densely detailed'],
+    ['新孟菲斯','neo-memphis, playful patterns'],
+    ['酸性设计','acid design, Y2K aesthetic'],
+  ]},
+  { name: '🧪 实验 / 街头', items: [
+    ['涂鸦风','graffiti, street art'],
+    ['街头艺术','street art, urban'],
+    ['生成艺术','generative art, procedural'],
+    ['AI绘图风','AI art aesthetic'],
+    ['双重曝光','double exposure'],
+    ['故障艺术','glitch art, digital distortion'],
+  ]},
+];
+
+// 展平为查表用
+const STYLES = Array.from(new Map(STYLE_GROUPS.flatMap(g => g.items).map(([cn,en]) => [en,[cn,en]])).values());
+let currentGroup = 0;
+let searchMode = false;
+
+const SHOT_TYPES = [
+  ['medium shot','中景'],['wide shot','远景'],['close-up','特写'],
+  ['extreme close-up','大特写'],['full body shot','全身'],
+  ['over the shoulder shot','过肩镜头'],['low angle shot','仰拍'],
+  ['high angle bird eye view','俯拍'],['dutch angle','倾斜'],
+  ['aerial drone shot','航拍'],
+];
+
+const CAMERA_MOVES = [
+  ['static fixed camera','固定'],['slow push in / dolly in','推镜'],
+  ['slow pull out / dolly out','拉镜'],['pan left to right','摇镜'],
+  ['tilt up','上摇'],['tracking / follow shot','跟镜'],
+  ['orbit around subject','环绕'],['zoom in','变焦推'],['zoom out','变焦拉'],
+];
+
+// ═════════════════════════════════════════════════════════════
+//  数据
+// ═════════════════════════════════════════════════════════════
+let selectedStyle = '3D Pixar style, cinematic';
+let characters = [];
+let scenes = [];
+let cid = 0, sid = 0;
+
+// ═════════════════════════════════════════════════════════════
+//  范例：草船借箭
+// ═════════════════════════════════════════════════════════════
+function loadDemo() {
+  if (!confirm('将替换当前资料为「草船借箭」范例，确认？')) return;
+  document.getElementById('g-title').value = '草船借箭';
+  document.getElementById('g-author').value = '';
+  document.getElementById('g-theme').value = '诸葛亮以二十艘草船巧借曹操十万支箭，展现智慧与胆识的三国经典故事。';
+  document.getElementById('back-title').value = '智慧传千年';
+  selectedStyle = '3D Pixar style, cinematic';
+  characters = [
+    { id: ++cid, name: '诸葛亮', desc: 'Zhuge Liang, Chinese Three Kingdoms strategist, mid-40s, long black beard, white feather fan, dark green Hanfu robe with gold trim, tall scholar hat, calm wise eyes' },
+    { id: ++cid, name: '鲁肃', desc: 'Lu Su, loyal advisor, 30s, round face, blue Hanfu robe, small beard, worried expression, traditional black cap' },
+    { id: ++cid, name: '曹操', desc: 'Cao Cao, warlord, 40s, sharp eyes, red and black armor, fierce expression, long dark cape, military helmet' },
+  ];
+  scenes = [
+    { id: ++sid, story: '军帐中周瑜设下三日造十万箭的难题，诸葛亮从容答应。', charIds: [1], startShot: 'medium shot', startDesc: 'standing in a dimly lit ancient Chinese military tent, calmly holding white feather fan', endShot: 'close-up', endDesc: 'slight confident smile, nodding in agreement', camMove: 'slow push in / dolly in' },
+    { id: ++sid, story: '诸葛亮向鲁肃借来二十艘草船，将船侧绑满稻草人。', charIds: [1,2], startShot: 'wide shot', startDesc: 'at a misty riverbank, 20 wooden boats lined up, soldiers tying bundles of straw figures', endShot: 'medium shot', endDesc: 'the boats fully covered with straw dummies on each side, ready to sail', camMove: 'pan left to right' },
+    { id: ++sid, story: '大雾弥漫的清晨，草船队悄悄驶向曹营水寨。', charIds: [1,2], startShot: 'aerial drone shot', startDesc: 'wide view of 20 ghostly boats gliding through thick river fog at dawn', endShot: 'over the shoulder shot', endDesc: 'from behind, boats approaching the dim silhouette of Cao Cao fleet', camMove: 'slow pull out / dolly out' },
+    { id: ++sid, story: '曹操在雾中不敢出战，命万箭齐发向草船攻击。', charIds: [3], startShot: 'medium shot', startDesc: 'standing on a watchtower, squinting into the fog, gesturing orders', endShot: 'wide shot', endDesc: 'massive volley of arrows flying into the fog, thousands of arrows in the air', camMove: 'tilt up' },
+    { id: ++sid, story: '草船插满箭矢，诸葛亮令船队调头带箭凯旋而归。', charIds: [1,2], startShot: 'close-up', startDesc: 'straw figures densely stuck with thousands of arrows, water droplets', endShot: 'wide shot', endDesc: 'the 20 boats sailing back through clearing morning fog, sunlight piercing through, arrows bristling everywhere', camMove: 'orbit around subject' },
+  ];
+  render(); save();
+  showToast('范例已载入 ✓');
+}
+
+// ═════════════════════════════════════════════════════════════
+//  风格网格
+// ═════════════════════════════════════════════════════════════
+function renderStyleTabs() {
+  const wrap = document.getElementById('style-tabs');
+  wrap.innerHTML = STYLE_GROUPS.map((g, i) => `
+    <button class="style-tab ${!searchMode && i === currentGroup ? 'active' : ''}" onclick="pickGroup(${i})">${g.name}</button>
+  `).join('');
+}
+function pickGroup(i) {
+  currentGroup = i;
+  searchMode = false;
+  document.getElementById('style-search').value = '';
+  renderStyleTabs();
+  renderStyleGrid();
+}
+function renderStyleGrid(filter = '') {
+  const wrap = document.getElementById('style-grid');
+  const f = filter.trim().toLowerCase();
+  let list;
+  if (f) {
+    searchMode = true;
+    // 搜索全部（去重）
+    list = STYLES.filter(([cn, en]) => cn.includes(f) || en.toLowerCase().includes(f));
+    renderStyleTabs(); // 取消 tab 高亮
+  } else {
+    searchMode = false;
+    list = STYLE_GROUPS[currentGroup]?.items || [];
+  }
+  wrap.innerHTML = list.map(([cn, en]) => `
+    <div class="style-item ${selectedStyle === en ? 'selected' : ''}" data-en="${escapeAttr(en)}" onclick="pickStyle(this)">${cn}</div>
+  `).join('') || '<div class="hint" style="grid-column:1/-1;text-align:center;padding:20px">无匹配结果</div>';
+  updateStyleLabel();
+}
+
+function pickStyle(el) {
+  selectedStyle = el.dataset.en;
+  document.querySelectorAll('.style-item').forEach(x => x.classList.toggle('selected', x.dataset.en === selectedStyle));
+  updateStyleLabel();
+  save();
+  syncAllFromCore();
+}
+
+// 当幕数 / 风格 / 主题 改变时，同步刷新 NBM Prompt、旁白、分镜 Prompt、封面
+function syncAllFromCore() {
+  try {
+    const mode = document.querySelector('input[name="src-mode"]:checked')?.value || 'auto';
+    // 1) NBM Prompt（只在 NBM 模式）
+    if (mode === 'notebooklm') {
+      if (typeof generateNbmPrompt === 'function') generateNbmPrompt();
+    }
+    // 2) 分镜 Prompt（若已生成过）
+    if (typeof scenes !== 'undefined' && Array.isArray(scenes) && scenes.length && typeof buildScenePrompt === 'function') {
+      scenes.forEach(s => {
+        if (s.startPrompt) s.startPrompt = buildScenePrompt(s, 'start');
+        if (s.endPrompt)   s.endPrompt   = buildScenePrompt(s, 'end');
+      });
+      if (typeof renderScenes === 'function') renderScenes();
+      if (typeof renderExportTable === 'function') renderExportTable();
+    }
+    // 3) 旁白（只在语音面板展开时）
+    const voice = document.getElementById('extra-voice');
+    if (voice && voice.style.display !== 'none' && voice.style.display !== '') {
+      if (typeof generateNarration === 'function') generateNarration();
+    }
+    // 4) 封面（若展开）
+    const cover = document.getElementById('extra-cover');
+    if (cover && cover.style.display !== 'none' && cover.style.display !== '') {
+      if (typeof generateCover === 'function') { generateCover('front'); generateCover('back'); }
+    }
+    save();
+  } catch (e) { console.warn('syncAllFromCore:', e); }
+}
+function updateStyleLabel() {
+  const lbl = document.getElementById('style-selected-label');
+  const item = STYLES.find(s => s[1] === selectedStyle);
+  if (item) {
+    lbl.innerHTML = `<span class="style-chip-selected">${item[0]}</span> <span style="color:var(--muted);font-size:0.72rem;font-family:monospace">${item[1]}</span>`;
+  } else {
+    lbl.innerHTML = '<span style="color:var(--muted)">（未选）</span>';
+  }
+}
+document.getElementById('style-search').addEventListener('input', e => renderStyleGrid(e.target.value));
+
+// 幕数 / 标题 / 主题 改变 → 防抖同步刷新（NBM / 旁白 / 分镜 / 封面）
+function onNumScenesChange() {
+  clearTimeout(window.__numScenesTimer);
+  window.__numScenesTimer = setTimeout(() => {
+    syncAllFromCore();
+  }, 300);
+}
+['g-title', 'g-theme', 'g-author', 'back-title'].forEach(id => {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.addEventListener('input', () => {
+    clearTimeout(window.__coreTextTimer);
+    window.__coreTextTimer = setTimeout(() => syncAllFromCore(), 500);
+  });
+});
+
+// ═════════════════════════════════════════════════════════════
+//  角色
+// ═════════════════════════════════════════════════════════════
+const CHAR_COLORS = ['#fbbf24','#10b981','#22d3ee','#f472b6','#a78bfa','#f97316','#84cc16','#60a5fa'];
+
+function addChar() {
+  characters.push({ id: ++cid, name: '', desc: '' });
+  renderChars(); renderScenes(); save();
+}
+function delChar(id) {
+  if (!confirm('删除此角色？')) return;
+  characters = characters.filter(c => c.id !== id);
+  scenes.forEach(s => s.charIds = s.charIds.filter(x => x !== id));
+  render(); save();
+}
+function updChar(id, k, v) {
+  const c = characters.find(x => x.id === id);
+  if (c) { c[k] = v; save(); }
+}
+function renderChars() {
+  const wrap = document.getElementById('chars-wrap');
+  if (!characters.length) { wrap.innerHTML = '<div class="hint" style="padding:12px 0">尚未创建角色，点「+ 新增角色」开始</div>'; return; }
+  wrap.innerHTML = characters.map((c, i) => {
+    const color = CHAR_COLORS[i % CHAR_COLORS.length];
+    return `
+      <div class="char-card">
+        <div class="char-head">
+          <div class="char-dot" style="background:${color}"></div>
+          <input type="text" value="${escapeAttr(c.name)}" placeholder="角色名（中文或英文都可）" oninput="updChar(${c.id},'name',this.value)" style="flex:1;font-weight:600">
+          <button class="btn btn-danger btn-sm" onclick="delChar(${c.id})">删除</button>
+        </div>
+        <label>物理辨识特征锚点（英文，明确服装/颜色/配件）</label>
+        <textarea oninput="updChar(${c.id},'desc',this.value)" placeholder="例：Chinese strategist, long black beard, white feather fan, dark green Hanfu robe, tall scholar hat">${escapeHtml(c.desc)}</textarea>
+      </div>`;
+  }).join('');
+}
+
+// 依标题推断主题/镜头/光影/质感
+function inferProjectParams() {
+  const title = document.getElementById('g-title').value.trim();
+  const themeEl = document.getElementById('g-theme');
+  const lensEl = document.getElementById('g-lens');
+  const lightEl = document.getElementById('g-light');
+  const qualityEl = document.getElementById('g-quality');
+
+  // 内建主题库（命中即用专属文案）
+  const THEMES = {
+    '静夜思': '唐代诗人李白在宁静月夜思念故乡的经典短诗，以床前明月光、地上霜、举头望明月、低头思故乡四句刻画游子乡愁。',
+    '春晓': '唐代诗人孟浩然清晨醒来听见鸟鸣、回忆夜来风雨的春日小诗，传递自然盎然生机与淡淡惜春之情。',
+    '鹅鹅鹅': '唐代骆宾王七岁所作《咏鹅》，以白鹅曲项向天歌、红掌拨清波的画面，表现童稚眼中的自然生趣。',
+    '草船借箭': '三国时期诸葛亮以二十艘草船巧妙从曹操处借得十万支箭，展现智慧胆识的经典故事。',
+    '龟兔赛跑': '骄傲兔子与坚持乌龟比赛跑步，最终乌龟靠毅力获胜的寓言，传递勤能补拙道理。',
+    '小红帽': '戴红帽小女孩去探望外婆，途中遇到大野狼，最后被猎人所救的格林童话经典。',
+    '愚公移山': '年迈愚公决心移走挡路大山，以坚毅精神感动天地的中国古代寓言。',
+    '西游记': '唐僧师徒四人历经九九八十一难、前往西天取经的古典神魔小说章节。',
+    '水循环': '水从海洋蒸发成云，降雨回到大地，再汇流入海的自然科学过程。',
+    '种子': '一粒小种子在泥土中破壳、抽芽、成长、开花、结果，完成生命循环的成长故事。',
+  };
+
+  if (!themeEl.value.trim()) {
+    if (THEMES[title]) themeEl.value = THEMES[title];
+    else if (title) themeEl.value = `《${title}》是一个充满想象与情感的故事，透过生动的画面与细腻的情节，传递深刻的寓意。`;
+  }
+
+  const combined = (title + ' ' + themeEl.value).toLowerCase();
+
+  // 镜头推断
+  if (!lensEl.dataset.userSet) {
+    let lens = '35mm lens, natural perspective';
+    if (/史诗|壮阔|战争|冒险|太空|宇宙|广阔|山|河|海|战场/.test(combined)) lens = '24mm wide lens';
+    else if (/情感|内心|思念|对话|细节|人物|心情/.test(combined)) lens = '85mm lens, shallow depth of field';
+    else if (/童话|绘本|小|可爱|孩子|动物/.test(combined)) lens = '35mm lens, natural perspective';
+    lensEl.value = lens;
+  }
+
+  // 光影推断
+  if (!lightEl.dataset.userSet) {
+    let light = 'golden hour, soft rim lighting, volumetric fog';
+    if (/夜|月|星|黑暗|梦|幽/.test(combined)) light = 'moonlight, mystical night atmosphere';
+    else if (/春|晨|曙|早|鸟/.test(combined)) light = 'natural daylight, bright and clean';
+    else if (/夕|黄昏|思|乡|愁/.test(combined)) light = 'warm sunset, orange and pink sky';
+    else if (/温暖|家|温馨|亲情/.test(combined)) light = 'golden hour, soft rim lighting, volumetric fog';
+    else if (/忧|悲|雨|离/.test(combined)) light = 'blue hour, cool moody tones';
+    else if (/戏剧|悬疑|惊/.test(combined)) light = 'dramatic chiaroscuro, high contrast';
+    lightEl.value = light;
+  }
+
+  // 质感
+  if (!qualityEl.value.trim()) {
+    qualityEl.value = '4k texture, subsurface scattering, cinematic detail';
+  }
+}
+
+// 用户手动改过时记录，避免被覆盖
+['g-lens','g-light'].forEach(id => {
+  document.getElementById(id)?.addEventListener('change', e => e.target.dataset.userSet = '1');
+});
+
+// 自动生成角色（依据标题/主题/课文）
+function autoGenerateCharacters() {
+  if (characters.length > 0 && !confirm(`将替换当前 ${characters.length} 个角色，确认？`)) return;
+  const title = document.getElementById('g-title').value.trim();
+  const theme = document.getElementById('g-theme').value.trim();
+  const mode = document.querySelector('input[name="src-mode"]:checked')?.value || 'auto';
+  const srcText = document.getElementById('g-source-text').value.trim();
+  const combinedText = [title, theme, mode === 'text' ? srcText : ''].join(' ');
+
+  // 1. 内建知名故事库（直接命中用专属角色）
+  const KNOWN = {
+    '静夜思': [
+      ['李白','young Tang dynasty poet Li Bai, 20s, elegant white Hanfu robe with blue trim, long black hair tied with jade hairpin, thoughtful gentle expression, scholarly appearance'],
+    ],
+    '春晓': [
+      ['孟浩然','middle-aged Tang dynasty poet Meng Haoran, 40s, simple grey Hanfu robe, short beard, peaceful contemplative expression, wooden sandals'],
+    ],
+    '鹅鹅鹅': [
+      ['骆宾王','young child poet Luo Binwang, 7 years old, traditional Chinese child robe in light blue, cute round face, big curious eyes, small topknot hair'],
+      ['白鹅','graceful white goose, pure white feathers, long curved neck, bright orange beak, bright red webbed feet, elegant posture'],
+    ],
+    '草船借箭': [
+      ['诸葛亮','Zhuge Liang, Chinese strategist in Three Kingdoms era, 40s, long black beard, white feather fan, dark green Hanfu robe with gold trim, tall scholar hat, calm wise eyes'],
+      ['鲁肃','Lu Su, loyal advisor, 30s, round face, blue Hanfu robe, small beard, concerned expression, traditional black cap'],
+      ['曹操','Cao Cao, warlord, 40s, sharp eyes, red and black armor, fierce expression, long dark cape, military helmet'],
+    ],
+    '龟兔赛跑': [
+      ['兔子','energetic rabbit, white fur with pink ears, red sport shirt, blue sneakers, confident smirk'],
+      ['乌龟','wise tortoise, green shell with golden patterns, small round glasses, yellow scarf, determined eyes'],
+    ],
+    '小红帽': [
+      ['小红帽','young girl, long brown braids, bright red hooded cape, white dress, woven basket, curious eyes'],
+      ['大野狼','grey wolf, sharp yellow eyes, long fangs, fluffy tail, sneaky grin'],
+      ['外婆','kind old grandmother, grey bun hairstyle, round glasses, blue floral nightgown, warm smile'],
+      ['猎人','strong woodsman, brown beard, green hunting jacket, leather boots, large axe'],
+    ],
+    '西游记': [
+      ['孙悟空','Monkey King Sun Wukong, golden fur, red cape, tiger skin skirt, golden headband, magical staff, fierce playful eyes'],
+      ['唐僧','monk Tang Sanzang, saffron robe, white inner garment, bald head, prayer beads, gentle calm face'],
+      ['猪八戒','Zhu Bajie pig demon, plump body, large round ears, grey robe, nine-toothed rake, friendly lazy grin'],
+      ['沙僧','Sha Wujing, dark muscular, brown robe, rope belt, beard necklace, stoic expression'],
+    ],
+    '水循环': [
+      ['小水滴','cute water droplet character, blue translucent body, big happy eyes, small arms and legs, cheerful expression'],
+      ['太阳公公','friendly sun character, golden rays, warm smiling face, rosy cheeks'],
+    ],
+    '种子': [
+      ['小种子','cute tiny seed with big eyes, tan brown shell, small sprout on top, curious expression'],
+    ],
+    '愚公移山': [
+      ['愚公','elderly determined Chinese man, long white beard, simple brown robe, bamboo hat, wooden shovel, wise eyes'],
+      ['智叟','skeptical old neighbor, grey beard, grey robe, small cap, doubtful expression'],
+    ],
+  };
+  for (const key in KNOWN) {
+    if (combinedText.includes(key)) {
+      characters = KNOWN[key].map(([name, desc]) => ({ id: ++cid, name, desc }));
+      render(); save();
+      showToast(`已识别「${key}」，自动载入 ${characters.length} 个角色 ✓`);
+      return;
+    }
+  }
+
+  // 2. 从课文中用正则抽取 2-3 字中文人名（A了/说/走/想 等动作前的词）
+  const extracted = new Set();
+  if (mode === 'text' && srcText) {
+    const nameRe = /([一-龥]{2,4})(?:说|走|想|看|跑|跳|拿|做|来|去|在|的|和|与|对|了)/g;
+    let m;
+    while ((m = nameRe.exec(srcText)) !== null && extracted.size < 4) {
+      const n = m[1];
+      // 滤掉常见非人名词
+      if (!/故事|今天|昨天|明天|时候|这些|那些|大家|这里|那里|什么|怎么|因为|所以|但是/.test(n)) {
+        extracted.add(n);
+      }
+    }
+  }
+
+  // 3. 否则产生通用角色
+  const chars = [];
+  if (extracted.size > 0) {
+    let i = 0;
+    extracted.forEach(name => {
+      const role = i === 0 ? 'main protagonist' : (i === 1 ? 'supporting character / friend' : 'secondary character');
+      chars.push([name, `${role}, Asian appearance, distinctive clothing, friendly expression, consistent design across all scenes`]);
+      i++;
+    });
+  } else {
+    // 依主题推断
+    const t = (title + theme).toLowerCase();
+    if (/动物|动物|小鸟|森林/.test(t)) {
+      chars.push(['主角', 'cute anthropomorphic animal protagonist, expressive eyes, distinctive clothing']);
+      chars.push(['伙伴', 'animal friend supporting character, different species, contrasting color palette']);
+    } else if (/历史|古代|皇帝|武将/.test(t)) {
+      chars.push(['主角', 'ancient Chinese figure, traditional Hanfu robe, distinctive cultural features']);
+      chars.push(['配角', 'loyal companion, secondary traditional clothing, supporting role appearance']);
+    } else if (/学校|学生|老师/.test(t)) {
+      chars.push(['主角', 'young student, school uniform, backpack, curious bright eyes']);
+      chars.push(['老师', 'kind teacher, professional clothing, warm smile, glasses']);
+    } else {
+      chars.push(['主角', `main character for "${title || 'the story'}", distinctive outfit, expressive face, consistent design`]);
+      chars.push(['配角', `supporting friend, different color scheme, complementary personality`]);
+    }
+  }
+
+  characters = chars.map(([name, desc]) => ({ id: ++cid, name, desc }));
+  render(); save();
+  showToast(`已自动生成 ${characters.length} 个角色（可手动微调）✓`);
+}
+
+// ═════════════════════════════════════════════════════════════
+//  一键全自动 — 把所有东西都生成
+// ═════════════════════════════════════════════════════════════
+async function oneClickAll() {
+  const title = document.getElementById('g-title').value.trim();
+  const mode = document.querySelector('input[name="src-mode"]:checked')?.value || 'auto';
+  const srcText = document.getElementById('g-source-text').value.trim();
+  if (!title && !(mode === 'text' && srcText)) {
+    showToast('请先填写作品标题（或贴入课文）');
+    return;
+  }
+  if ((characters.length > 0 || scenes.length > 0) && !confirm('将重置所有角色和分镜并自动生成，确认？')) return;
+
+  // 0. 自动填项目参数
+  inferProjectParams();
+
+  // 1. 角色
+  characters = [];
+  autoGenerateCharactersNoConfirm();
+  // 2. 分镜 + 旁白
+  const n = Math.max(2, Math.min(12, parseInt(document.getElementById('g-num-scenes').value) || 5));
+  if (mode === 'text' && srcText) {
+    autoFromTextNoConfirm(n);
+  } else {
+    // 仅标题模式：先显示故事草稿供编辑，确认后才继续生成分镜+五维视频
+    render(); save();
+    showStoryDraft(n);
+    return;
+  }
+  // 3. 自动填充首尾帧描述（连贯叙事：前一幕结尾 → 下一幕开头）
+  buildContinuousFrames(scenes);
+  const shots = ['medium shot','wide shot','close-up','low angle shot','high angle bird eye view'];
+  scenes.forEach((s, idx) => {
+    s.startShot = shots[idx % shots.length];
+    s.endShot = shots[(idx + 1) % shots.length];
+  });
+  // 4. 生成所有 prompt + 视频五维
+  scenes.forEach(s => {
+    s.startPrompt = buildScenePrompt(s, 'start');
+    s.endPrompt = buildScenePrompt(s, 'end');
+    autoFillVideoDims(s);
+  });
+  // 5. 定装照
+  if (characters.length) generateCharTurnaround();
+  // 6. 封面、封底、音乐
+  generateCover('front');
+  generateCover('back');
+  generateMusic();
+
+  // 7. 自动填旁白 + 语气描述（Gemini TTS 用）
+  try { if (typeof generateNarration === 'function') generateNarration(); } catch(e){}
+  autoFillVoiceStyle();
+
+  render(); save();
+  showToast('🚀 全部生成完成！往下滚动看结果');
+  // 自动滚到分镜区
+  setTimeout(() => document.querySelector('#scenes-wrap').scrollIntoView({ behavior: 'smooth', block: 'start' }), 300);
+}
+
+// 根据标题/主题/课文关键词，自动填入语气描述
+function autoFillVoiceStyle() {
+  const styleInput = document.getElementById('gemini-style');
+  if (!styleInput || styleInput.value.trim()) return; // 已填就不覆盖
+  const text = (
+    (document.getElementById('g-title')?.value || '') + ' ' +
+    (document.getElementById('g-theme')?.value || '') + ' ' +
+    (document.getElementById('g-source-text')?.value || '')
+  ).toLowerCase();
+  const has = kws => kws.some(k => text.includes(k));
+
+  let tone = '温柔亲切地讲述，像在说故事';  // 默认说故事
+  if (has(['童话','寓言','小朋友','儿童','绘本','森林','动物','小兔','小熊','小象'])) {
+    tone = '活泼温暖地说故事，像给小朋友读绘本，语速轻快';
+  } else if (has(['悲','哭','离别','死','战争','难过','思念'])) {
+    tone = '缓慢低沉地诉说，带一点哀伤与温柔';
+  } else if (has(['古诗','唐诗','宋词','文言','诗经','李白','杜甫'])) {
+    tone = '沉稳典雅地朗诵，语调平缓有韵律';
+  } else if (has(['科学','知识','科普','原理','实验','介绍'])) {
+    tone = '清晰专业地讲解，语速适中，像纪录片旁白';
+  } else if (has(['冒险','英雄','勇敢','奇幻','魔法','传说'])) {
+    tone = '富有戏剧感地讲述，语气起伏有张力';
+  } else if (has(['睡前','安静','夜晚','月','梦'])) {
+    tone = '温柔缓慢地讲述，像说睡前故事';
+  }
+  styleInput.value = tone;
+}
+
+// ── 首尾帧连贯性：每幕结尾 → 下一幕开头，形成完整故事 ──
+function buildContinuousFrames(list) {
+  const clean = t => (t || '').replace(/^第\d+幕[：: ]?/, '').replace(/\s+/g, '').slice(0, 80);
+  list.forEach((s, i) => {
+    const cur = clean(s.story);
+    const prev = i > 0 ? clean(list[i-1].story) : '';
+    const next = i < list.length - 1 ? clean(list[i+1].story) : '';
+    // 开头帧：第一幕 = 建立场景；其余 = 承接上一幕结尾
+    if (i === 0) {
+      s.startDesc = `opening establishing frame, introduce the setting and mood, ${cur}`;
+    } else {
+      s.startDesc = `seamless continuity from previous scene ending (${prev}), same characters/location carry over, now entering: ${cur}`;
+    }
+    // 结尾帧：末幕 = 故事收束；其余 = 铺垫下一幕
+    if (i === list.length - 1) {
+      s.endDesc = `final resolution frame, story concludes with lingering emotion, ${cur} — closing composition`;
+    } else {
+      s.endDesc = `transitional ending that visually sets up the next scene (${next}), matching lighting and character positions to enable smooth cut`;
+    }
+  });
+}
+
+// ── 仅标题模式：故事草稿 → 确认后才生成分镜 ──
+function showStoryDraft(n) {
+  const title = document.getElementById('g-title').value.trim();
+  const theme = document.getElementById('g-theme').value.trim();
+  const subject = title || '主角';
+  const stories = buildArcTemplate(subject, theme, n);
+  const list = document.getElementById('story-draft-list');
+  if (!list) return;
+  list.innerHTML = stories.map((s, i) => `
+    <div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:6px">
+      <span style="flex:0 0 48px;color:var(--muted);font-size:0.8rem;padding-top:6px">第${i+1}幕</span>
+      <textarea class="story-draft-line" rows="2" style="flex:1">${s.replace(/</g,'&lt;')}</textarea>
+    </div>
+  `).join('');
+  const wrap = document.getElementById('story-draft-wrap');
+  if (wrap) {
+    wrap.style.display = 'block';
+    wrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+  showToast('📝 请检视/修改故事草稿，确认后再生成分镜');
+}
+
+function regenerateStoryDraft() {
+  const n = Math.max(2, Math.min(12, parseInt(document.getElementById('g-num-scenes').value) || 5));
+  showStoryDraft(n);
+}
+
+function cancelStoryDraft() {
+  const wrap = document.getElementById('story-draft-wrap');
+  if (wrap) wrap.style.display = 'none';
+}
+
+function confirmStoryDraft() {
+  const lines = Array.from(document.querySelectorAll('#story-draft-list .story-draft-line'))
+    .map(t => t.value.trim()).filter(Boolean);
+  if (!lines.length) { showToast('故事草稿为空'); return; }
+  applyAutoScenes(lines);
+  // 自动填首尾帧描述 + 不同镜头（连贯叙事：前一幕结尾 → 下一幕开头）
+  const shots = ['medium shot','wide shot','close-up','low angle shot','high angle bird eye view'];
+  buildContinuousFrames(scenes);
+  scenes.forEach((s, idx) => {
+    s.startShot = shots[idx % shots.length];
+    s.endShot = shots[(idx + 1) % shots.length];
+  });
+  // 生成所有 prompt + 视频五维
+  scenes.forEach(s => {
+    s.startPrompt = buildScenePrompt(s, 'start');
+    s.endPrompt = buildScenePrompt(s, 'end');
+    autoFillVideoDims(s);
+  });
+  if (characters.length) generateCharTurnaround();
+  generateCover('front');
+  generateCover('back');
+  generateMusic();
+  try { if (typeof generateNarration === 'function') generateNarration(); } catch(e){}
+  autoFillVoiceStyle();
+  render(); save();
+  cancelStoryDraft();
+  showToast('🚀 已按确认故事生成分镜与五维视频！');
+  setTimeout(() => document.querySelector('#scenes-wrap')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 300);
+}
+
+// 无确认版本（供一键用）
+function autoGenerateCharactersNoConfirm() {
+  const bak = confirm; window.confirm = () => true;
+  try { autoGenerateCharacters(); } finally { window.confirm = bak; }
+}
+function autoFromTextNoConfirm(n) {
+  const bak = confirm; window.confirm = () => true;
+  try { autoFromText(n); } finally { window.confirm = bak; }
+}
+function autoFromTitleNoConfirm(n) {
+  const bak = confirm; window.confirm = () => true;
+  try { autoFromTitle(n); } finally { window.confirm = bak; }
+}
+
+function generateCharTurnaround() {
+  if (!characters.length) { showToast('请先新增角色'); return; }
+  const wrap = document.getElementById('char-turnaround-wrap');
+  const body = document.getElementById('turnaround-tbody');
+  body.innerHTML = characters.map((c, i) => {
+    const base = `${selectedStyle}, character turnaround reference sheet, ${c.desc}, full body, neutral pose, plain light grey background, even studio lighting, character design sheet, consistent proportions`;
+    return `
+      <tr>
+        <td style="font-weight:600;color:${CHAR_COLORS[i%CHAR_COLORS.length]}">${escapeHtml(c.name)}</td>
+        <td class="code">${escapeHtml(base + ', front view, facing camera')}</td>
+        <td class="code">${escapeHtml(base + ', back view, facing away')}</td>
+        <td class="code">${escapeHtml(base + ', side profile view')}</td>
+      </tr>`;
+  }).join('');
+  wrap.style.display = 'block';
+  wrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  showToast(`已生成 ${characters.length * 3} 张定装照 Prompt ✓`);
+}
+
+// ═════════════════════════════════════════════════════════════
+//  场景
+// ═════════════════════════════════════════════════════════════
+function addScene() {
+  scenes.push({ id: ++sid, story: '', charIds: [], startShot: 'medium shot', startDesc: '', endShot: 'medium shot', endDesc: '', camMove: 'static fixed camera', startPrompt: '', endPrompt: '', vidContent: '', vidMotion: '', vidEnv: '', vidTrans: '', vidMood: '' });
+  renderScenes(); save();
+}
+function delScene(id) {
+  if (!confirm('删除此幕？')) return;
+  scenes = scenes.filter(s => s.id !== id);
+  renderScenes(); save();
+}
+function updScene(id, k, v) {
+  const s = scenes.find(x => x.id === id);
+  if (s) { s[k] = v; save(); }
+}
+function toggleSceneChar(sid_, cid_) {
+  const s = scenes.find(x => x.id === sid_);
+  if (!s) return;
+  if (s.charIds.includes(cid_)) s.charIds = s.charIds.filter(x => x !== cid_);
+  else s.charIds.push(cid_);
+  renderScenes(); save();
+}
+function renderScenes() {
+  const wrap = document.getElementById('scenes-wrap');
+  if (!scenes.length) { wrap.innerHTML = '<div class="hint" style="padding:12px 0">尚无分镜，点「+ 新增一幕」开始</div>'; return; }
+  wrap.innerHTML = scenes.map((s, i) => `
+    <div class="scene-card">
+      <div class="scene-head">
+        <div class="scene-num">${i+1}</div>
+        <input type="text" value="${escapeAttr(s.story)}" placeholder="这一幕的剧情（中文叙述）" oninput="updScene(${s.id},'story',this.value)">
+        <button class="btn btn-danger btn-sm" onclick="delScene(${s.id})">删除</button>
+      </div>
+      <div class="scene-body">
+        <label>🎭 出场角色</label>
+        <div class="chars-pick">
+          ${characters.length === 0 ? '<div class="hint">先到步骤 2 新增角色</div>' : characters.map((c, ci) => {
+            const color = CHAR_COLORS[ci%CHAR_COLORS.length];
+            const active = s.charIds.includes(c.id);
+            return `<div class="char-chip ${active?'active':''}" style="${active?`background:${color};border-color:${color}`:''}" onclick="toggleSceneChar(${s.id},${c.id})">${escapeHtml(c.name || '未命名')}</div>`;
+          }).join('')}
+        </div>
+
+        <div class="frame-pair">
+          <div class="frame-box start">
+            <h4>🎬 开始画面（首帧 · Frame A）</h4>
+            <div class="grid-2">
+              <div>
+                <label>镜头</label>
+                <select onchange="updScene(${s.id},'startShot',this.value)">
+                  ${SHOT_TYPES.map(([v,cn])=>`<option value="${v}" ${s.startShot===v?'selected':''}>${cn}</option>`).join('')}
+                </select>
+              </div>
+            </div>
+            <label>画面细节（英文）</label>
+            <textarea oninput="updScene(${s.id},'startDesc',this.value)" placeholder="e.g. standing in military tent holding feather fan">${escapeHtml(s.startDesc)}</textarea>
+            <div class="btn-row" style="margin-top:8px">
+              <button class="btn btn-primary btn-sm" onclick="genScenePrompt(${s.id},'start')">⚡ 生成首帧</button>
+              <button class="btn btn-outline btn-sm" onclick="copyText(scenes.find(x=>x.id===${s.id}).startPrompt)">📋</button>
+            </div>
+            <div class="prompt-out" id="out-start-${s.id}">${escapeHtml(s.startPrompt)}</div>
+          </div>
+
+          <div class="frame-box end">
+            <h4>🎬 结束画面（尾帧 · Frame B）</h4>
+            <div class="grid-2">
+              <div>
+                <label>镜头</label>
+                <select onchange="updScene(${s.id},'endShot',this.value)">
+                  ${SHOT_TYPES.map(([v,cn])=>`<option value="${v}" ${s.endShot===v?'selected':''}>${cn}</option>`).join('')}
+                </select>
+              </div>
+            </div>
+            <label>画面细节（英文）</label>
+            <textarea oninput="updScene(${s.id},'endDesc',this.value)" placeholder="e.g. slight confident smile, close-up">${escapeHtml(s.endDesc)}</textarea>
+            <div class="btn-row" style="margin-top:8px">
+              <button class="btn btn-primary btn-sm" onclick="genScenePrompt(${s.id},'end')">⚡ 生成尾帧</button>
+              <button class="btn btn-outline btn-sm" onclick="copyText(scenes.find(x=>x.id===${s.id}).endPrompt)">📋</button>
+            </div>
+            <div class="prompt-out" id="out-end-${s.id}">${escapeHtml(s.endPrompt)}</div>
+          </div>
+        </div>
+
+        <div class="video-dims">
+          <h4>🎥 视频生成 · 五维参数（送 Kling/Veo/Dreamina）</h4>
+          <div class="dim-grid">
+            <div>
+              <label>运镜方式</label>
+              <select onchange="updScene(${s.id},'camMove',this.value)">
+                ${CAMERA_MOVES.map(([v,cn])=>`<option value="${v}" ${s.camMove===v?'selected':''}>${cn}</option>`).join('')}
+              </select>
+            </div>
+          </div>
+          <div class="dim-grid" style="margin-top:6px">
+            <div>
+              <label>① 影片内容（动作核心）</label>
+              <textarea oninput="updScene(${s.id},'vidContent',this.value)" placeholder="本段发生的核心动作" rows="2">${escapeHtml(s.vidContent)}</textarea>
+            </div>
+            <div>
+              <label>② 动态动作（角色肢体）</label>
+              <textarea oninput="updScene(${s.id},'vidMotion',this.value)" placeholder="主角动作：重心偏移、眼神..." rows="2">${escapeHtml(s.vidMotion)}</textarea>
+            </div>
+            <div>
+              <label>③ 环境动态</label>
+              <textarea oninput="updScene(${s.id},'vidEnv',this.value)" placeholder="风速、光影、气候..." rows="2">${escapeHtml(s.vidEnv)}</textarea>
+            </div>
+          </div>
+          <div class="grid-2" style="margin-top:6px">
+            <div>
+              <label>④ 运镜过渡（Frame A → Frame B）</label>
+              <textarea oninput="updScene(${s.id},'vidTrans',this.value)" placeholder="从首帧到尾帧的视觉变化" rows="2">${escapeHtml(s.vidTrans)}</textarea>
+            </div>
+            <div>
+              <label>⑤ 氛围 & 音效</label>
+              <textarea oninput="updScene(${s.id},'vidMood',this.value)" placeholder="光影气候 + 环境音/配乐风格" rows="2">${escapeHtml(s.vidMood)}</textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ═════════════════════════════════════════════════════════════
+//  Prompt 组装
+// ═════════════════════════════════════════════════════════════
+function globalTail() {
+  const lens = document.getElementById('g-lens').value;
+  const light = document.getElementById('g-light').value;
+  const quality = document.getElementById('g-quality').value;
+  return [lens, light, quality].filter(Boolean).join(', ');
+}
+function charAnchor(ids) {
+  return ids.map(id => characters.find(c => c.id === id)).filter(c => c && c.desc)
+    .map(c => c.desc).join('; ');
+}
+function buildScenePrompt(s, which) {
+  const shot = which === 'start' ? s.startShot : s.endShot;
+  const desc = which === 'start' ? s.startDesc : s.endDesc;
+  const chars = charAnchor(s.charIds);
+  const parts = [selectedStyle, shot];
+  if (chars) parts.push(chars);
+  if (desc) parts.push(desc);
+  const tail = globalTail();
+  if (tail) parts.push(tail);
+  parts.push('16:9 aspect ratio, consistent character design');
+  return parts.filter(Boolean).join(', ');
+}
+function genScenePrompt(id, which) {
+  const s = scenes.find(x => x.id === id);
+  if (!s) return;
+  const p = buildScenePrompt(s, which);
+  if (which === 'start') { s.startPrompt = p; document.getElementById(`out-start-${id}`).textContent = p; }
+  else { s.endPrompt = p; document.getElementById(`out-end-${id}`).textContent = p; }
+  save();
+}
+function autoFillVideoDims(s) {
+  const idx = scenes.indexOf(s);
+  const total = scenes.length;
+  const charNames = s.charIds.map(id => characters.find(c => c.id === id)?.name).filter(Boolean).join('、') || '主角';
+  const nextScene = idx < total - 1 ? scenes[idx + 1] : null;
+
+  if (!s.vidContent) {
+    s.vidContent = `动作核心：${charNames}${s.story.replace(/[。.！!？?]+$/, '')}。本段完整呈现此情节的关键瞬间，从铺陈到动作高点，构图保持角色锚点特征清晰可辨。`;
+  }
+  if (!s.vidMotion) {
+    const emo = idx === 0 ? '好奇试探' : idx === total - 1 ? '释然满足' : '专注投入';
+    const next = idx === 0 ? '坚定' : idx === total - 1 ? '回味' : '下一步意图';
+    s.vidMotion = `${charNames} 动作细腻：重心随动作自然偏移（脚步/身体微倾），肌肉张力由放松渐入收紧再释放，眼神由「${emo}」缓缓流转至「${next}」，嘴角与眉宇呼应情绪，手部姿态辅助传达（如握拳/指示/轻抚），呼吸节奏可见。`;
+  }
+  if (!s.vidEnv) {
+    s.vidEnv = `环境动态融合：微风以每秒 1-2 公尺吹动背景元素（树叶/衣袂/发丝），光影随云移或时间流逝缓慢漂移，空气中可见气候介质（${/夜|月/.test(s.story) ? '月光粒子' : /雾/.test(s.story) ? '雾气翻腾' : '阳光尘埃浮动'}），背景远处有 1-2 个次要角色/生物的日常动态增加真实感。`;
+  }
+  if (!s.vidTrans) {
+    const next = nextScene ? nextScene.story.slice(0, 25) : '收束画面';
+    s.vidTrans = `Frame A (${s.startShot}) → Frame B (${s.endShot})：透过「${s.camMove}」平滑过渡，镜头速度先慢后快再缓，最后一帧在构图/色调/主体位置上衔接下一幕「${next}...」的首帧，确保视觉连贯无跳切。`;
+  }
+  if (!s.vidMood) {
+    const musicArc = idx === 0 ? '轻柔弦乐渐入，铺陈故事背景' :
+                     idx === total - 1 ? '主旋律升华，情绪圆满收束，温暖弦乐+钢琴' :
+                     idx / total < 0.5 ? '节奏渐强，木管与打击乐铺垫悬念' :
+                     '高潮激昂，全乐团推进情绪至顶点';
+    const ambient = /夜|月|静/.test(s.story) ? '夜虫鸣、远处风声、偶尔狗吠' :
+                    /鸟|春|花/.test(s.story) ? '清晨鸟鸣、风吹花草、远处水流' :
+                    /水|河|海/.test(s.story) ? '水流声、涟漪、远处鸟鸣' :
+                    /战|箭|军/.test(s.story) ? '旗帜猎猎、远处军鼓、弓弦颤动' :
+                    '微风声、脚步回响、自然环境底噪';
+    s.vidMood = `光影：${/夜|月/.test(s.story) ? '冷调月光阴影' : /夕|黄昏/.test(s.story) ? '暖橘渐层' : '自然明暗过渡'}；气候感：${/雨/.test(s.story) ? '湿润空气' : /雾/.test(s.story) ? '朦胧潮气' : '清朗宜人'}。环境音：${ambient}。配乐：${musicArc}。`;
+  }
+}
+function generateAll() {
+  scenes.forEach(s => {
+    s.startPrompt = buildScenePrompt(s, 'start');
+    s.endPrompt = buildScenePrompt(s, 'end');
+    autoFillVideoDims(s);
+  });
+  renderScenes(); renderExportTable(); save();
+  showToast(`已生成全部 ${scenes.length} 幕 Prompt ✓`);
+}
+
+// ═════════════════════════════════════════════════════════════
+//  模式切换 & 自动生成（文本 / 标题）
+// ═════════════════════════════════════════════════════════════
+function toggleSourceMode() {
+  const mode = document.querySelector('input[name="src-mode"]:checked')?.value || 'auto';
+  // 贴课文区：在 text / notebooklm 模式都显示
+  document.getElementById('source-text-wrap').style.display =
+    (mode === 'text' || mode === 'notebooklm') ? 'block' : 'none';
+  // 调整贴课文区的提示文字
+  const srcLabel = document.getElementById('source-text-label');
+  if (srcLabel) {
+    srcLabel.textContent = mode === 'notebooklm'
+      ? '课文 / 剧本原文（贴入后将用于生成 N 幕旁白文案）'
+      : '课文 / 剧本原文（贴入后按句号切分成 N 幕，自动派生所有内容）';
+  }
+  const nbm = document.getElementById('phase-nbm');
+  if (nbm) nbm.style.display = mode === 'notebooklm' ? 'block' : 'none';
+  document.querySelectorAll('[data-nbm-hide]').forEach(el => {
+    el.style.display = mode === 'notebooklm' ? 'none' : '';
+  });
+  // NBM 模式下同时隐藏导出区
+  const exp = document.getElementById('export-area');
+  if (exp) exp.style.display = mode === 'notebooklm' ? 'none' : '';
+  document.getElementById('pill-auto')?.classList.toggle('active', mode === 'auto');
+  document.getElementById('pill-text')?.classList.toggle('active', mode === 'text');
+  document.getElementById('pill-nbm')?.classList.toggle('active', mode === 'notebooklm');
+  if (mode === 'notebooklm') {
+    generateNbmPrompt();
+    // 自动展开语音面板，并生成旁白（NBM 模式下主要产出就是旁白 + 语音）
+    const voice = document.getElementById('extra-voice');
+    if (voice && voice.style.display === 'none') voice.style.display = 'block';
+    try { if (typeof generateNarration === 'function') generateNarration(); } catch(e){}
+  }
+  save();
+}
+
+function generateNbmPrompt() {
+  const title = document.getElementById('g-title')?.value.trim() || '此课文';
+  const n = document.getElementById('g-num-scenes')?.value || 5;
+  const styleCN = (typeof selectedStyle !== 'undefined' && Array.isArray(STYLES))
+    ? (STYLES.find(s => s[1] === selectedStyle)?.[0] || '')
+    : '';
+  const lang = (typeof uiLang !== 'undefined' && uiLang) ? uiLang : 'zh';
+  let p;
+  if (lang === 'en') {
+    const styleLine = styleCN ? `\nOverall visual style: ${styleCN}.` : '';
+    p = `Based on "${title}", give me an illustration outline for a ${n}-page deck. For each page, use the original source text and present it in storytelling form. List them page by page, and for each page include a "Original story text" line followed by an "Illustration suggestion".${styleLine}`;
+  } else {
+    const styleLine = styleCN ? `\n整体视觉风格：${styleCN}。` : '';
+    p = `请根据《${title}》，给我 ${n} 页简报插图建议大纲，每一页都是原文，用说故事的方式呈现，列出来。${styleLine}`;
+  }
+  const out = document.getElementById('nbm-out');
+  if (out) out.textContent = p;
+}
+
+function toggleExtra(type) {
+  const el = document.getElementById('extra-' + type);
+  if (!el) return;
+  const showing = el.style.display !== 'none' && el.style.display !== '';
+  if (el.style.display === '' && getComputedStyle(el).display !== 'none') {
+    el.style.display = 'none'; return;
+  }
+  el.style.display = showing ? 'none' : 'block';
+  if (!showing) {
+    try {
+      if (type === 'voice' && typeof generateNarration === 'function') generateNarration();
+      else if (type === 'cover') {
+        if (typeof generateCover === 'function') { generateCover('front'); generateCover('back'); }
+      }
+      else if (type === 'music' && typeof generateMusic === 'function') generateMusic();
+    } catch(e) { console.warn(e); }
+  }
+}
+
+function onSourceTextInput() {
+  // 防抖：贴入文本后自动处理
+  clearTimeout(window.__srcTextTimer);
+  window.__srcTextTimer = setTimeout(() => {
+    const text = document.getElementById('g-source-text')?.value.trim();
+    if (!text || text.length < 20) return;
+    const mode = document.querySelector('input[name="src-mode"]:checked')?.value || 'auto';
+    const n = Math.max(2, Math.min(12, parseInt(document.getElementById('g-num-scenes').value) || 5));
+    if (mode === 'notebooklm') {
+      // NBM 模式：只更新旁白 + NBM prompt，不产生分镜
+      generateNarration();
+      generateNbmPrompt();
+      // 自动打开语音区（若尚未展开）
+      const voice = document.getElementById('extra-voice');
+      if (voice && voice.style.display === 'none') voice.style.display = 'block';
+    } else if (typeof autoFromText === 'function') {
+      autoFromText(n);
+    }
+  }, 800);
+}
+
+function autoGenerateStory() {
+  const mode = document.querySelector('input[name="src-mode"]:checked')?.value || 'auto';
+  const n = Math.max(2, Math.min(12, parseInt(document.getElementById('g-num-scenes').value) || 5));
+  if (scenes.length > 0 && !confirm(`将替换当前 ${scenes.length} 幕分镜，确认？`)) return;
+  if (mode === 'text') autoFromText(n);
+  else autoFromTitle(n);
+}
+
+function autoFromText(n) {
+  const text = document.getElementById('g-source-text').value.trim();
+  if (!text) { showToast('请先贴入课文/剧本'); return; }
+  // 按句末标点切句
+  const sentences = text.split(/(?<=[。！？!?\n])/).map(s => s.trim()).filter(Boolean);
+  let buckets;
+  if (sentences.length >= n) {
+    // 均分到 N 桶
+    const per = Math.ceil(sentences.length / n);
+    buckets = [];
+    for (let i = 0; i < n; i++) {
+      const bucket = sentences.slice(i*per, (i+1)*per).join('');
+      if (bucket) buckets.push(bucket);
+    }
+  } else {
+    // 句子数少于幕数 — 按字数均分
+    const size = Math.ceil(text.length / n);
+    buckets = [];
+    for (let i = 0; i < n; i++) {
+      const chunk = text.slice(i*size, (i+1)*size).trim();
+      if (chunk) buckets.push(chunk);
+    }
+  }
+  applyAutoScenes(buckets);
+  // 自动生成完整旁白（不截断）
+  generateNarration();
+  save();
+  showToast(`已依文本切分为 ${buckets.length} 幕 ✓`);
+}
+
+function autoFromTitle(n) {
+  const title = document.getElementById('g-title').value.trim();
+  const theme = document.getElementById('g-theme').value.trim();
+  if (!title && !theme) { showToast('请先填写标题或主题'); return; }
+  const subject = title || '主角';
+  const stories = buildArcTemplate(subject, theme, n);
+  applyAutoScenes(stories);
+  generateNarration();
+  save();
+  showToast(`已依「${title || '主题'}」自动生成 ${n} 幕 ✓`);
+}
+
+function buildArcTemplate(subject, theme, n) {
+  // 起承转合 5 段结构，按 n 伸缩
+  const core = [
+    `${subject}登场，介绍背景与日常。`,
+    `一个事件打破平静，${subject}遇到挑战。`,
+    `${subject}尝试不同方法应对困难。`,
+    `关键转折，故事迎来高潮与转变。`,
+    `${subject}完成旅程，故事留下寓意与希望。`,
+  ];
+  if (n === 5) return core.slice();
+  if (n === 3) return [core[0], core[2], core[4]];
+  if (n === 4) return [core[0], core[1], core[3], core[4]];
+  if (n === 6) return [core[0], core[1], core[2], core[3], core[3].replace('转变','新发现'), core[4]];
+  if (n === 7) return [core[0], core[0].replace('背景','伙伴'), core[1], core[2], core[3], core[3].replace('转变','升华'), core[4]];
+  if (n === 8) return [core[0], core[0].replace('背景','世界观'), core[1], core[2], core[2].replace('应对','再次尝试'), core[3], core[3].replace('转变','顿悟'), core[4]];
+  // fallback
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    if (i === 0) out.push(core[0]);
+    else if (i === n - 1) out.push(core[4]);
+    else out.push(core[1 + ((i - 1) % 3)]);
+  }
+  return out;
+}
+
+function applyAutoScenes(stories) {
+  scenes = stories.map(story => ({
+    id: ++sid, story,
+    charIds: characters.map(c => c.id),
+    startShot: 'medium shot', startDesc: '', endShot: 'medium shot', endDesc: '',
+    camMove: 'static fixed camera',
+    startPrompt: '', endPrompt: '',
+    vidContent: '', vidMotion: '', vidEnv: '', vidTrans: '', vidMood: '',
+  }));
+  renderScenes(); renderExportTable();
+}
+
+// ═════════════════════════════════════════════════════════════
+//  附加素材：旁白 / 封面 / 音乐
+// ═════════════════════════════════════════════════════════════
+let narrationLen = 'std'; // 'std' = 原文旁白 | 'rich' = 生动旁白
+function setNarrationLen(v) {
+  if (v !== 'rich') v = 'std';
+  narrationLen = v;
+  ['std','rich'].forEach(k => {
+    document.getElementById('pill-len-' + k)?.classList.toggle('active', k === v);
+  });
+  generateNarration();
+}
+
+// 把一段长文字按目标长度压缩（保留首尾）
+function shrinkText(t, target) {
+  t = t.replace(/\s+/g, '');
+  if (t.length <= target) return t;
+  return t.slice(0, target - 1) + '…';
+}
+// 为「丰富」模式附加情境句
+function richTail(i, n) {
+  const open  = ['在这一刻，', '与此同时，', '不久之后，', '接着，', '没想到，'];
+  const close = ['气氛格外动人。', '画面令人屏息。', '故事悄然转折。', '留下深刻回响。', '众人心头一震。'];
+  return `${open[i % open.length]}${close[i % close.length]}`;
+}
+
+function generateNarration() {
+  const theme = document.getElementById('g-theme').value.trim();
+  const title = document.getElementById('g-title').value.trim() || '这个故事';
+  const mode = document.querySelector('input[name="src-mode"]:checked')?.value || 'auto';
+  const sourceText = document.getElementById('g-source-text').value.trim();
+  const out = document.getElementById('narration-out');
+  if (!out) return;
+  const n = Math.max(2, Math.min(12,
+    scenes.length ||
+    parseInt(document.getElementById('g-num-scenes')?.value) ||
+    5
+  ));
+
+  // ── A. 贴课文模式（text / notebooklm 且有文本）：按幕分配完整原文 ──
+  if (sourceText && (mode === 'text' || mode === 'notebooklm')) {
+    const sentences = sourceText.split(/(?<=[。！？!?\n])/).map(s => s.trim()).filter(Boolean);
+    let buckets;
+    if (sentences.length >= n) {
+      const per = Math.ceil(sentences.length / n);
+      buckets = [];
+      for (let i = 0; i < n; i++) {
+        const b = sentences.slice(i*per, (i+1)*per).join('');
+        if (b) buckets.push(b);
+      }
+    } else {
+      const size = Math.ceil(sourceText.length / n);
+      buckets = [];
+      for (let i = 0; i < n; i++) {
+        const c = sourceText.slice(i*size, (i+1)*size).trim();
+        if (c) buckets.push(c);
+      }
+    }
+    let lines;
+    if (narrationLen === 'rich') {
+      // 生动旁白：在原文基础上添加情境过渡句
+      lines = buckets.map((b, i) => `第${i+1}幕：${b.replace(/\s+/g,'')}${richTail(i, buckets.length)}`);
+    } else {
+      // 原文旁白：原文逐幕分配
+      lines = buckets.map((b, i) => `第${i+1}幕：${b.replace(/\s+/g,'')}`);
+    }
+    out.value = lines.join(narrationLen === 'rich' ? '\n\n' : '\n');
+    save();
+    return;
+  }
+
+  // ── B. 仅标题模式：基于分镜 story 生成 ──
+  if (scenes.length === 0) {
+    // 还没分镜 — 用模板
+    const subject = title || '主角';
+    const stories = buildArcTemplate(subject, theme, n);
+    const lines = stories.map((s, i) => {
+      if (narrationLen === 'rich') return `第${i+1}幕：${s}${richTail(i, n)}`;
+      return `第${i+1}幕：${s}`;
+    });
+    const intro = theme ? theme.replace(/[。.]$/, '') + '。' : `《${title}》的故事这样展开：`;
+    out.value = intro + (narrationLen === 'rich' ? '\n\n' : '\n') + lines.join(narrationLen === 'rich' ? '\n\n' : '\n');
+    save();
+    return;
+  }
+
+  const intro = theme ? theme.replace(/[。.]$/, '') + '。' : `《${title}》的故事这样展开：`;
+  const lines = scenes.map((s, i) => {
+    const story = (s.story || '').trim();
+    if (narrationLen === 'rich') return `第${i+1}幕：${story}${richTail(i, scenes.length)}`;
+    return `第${i+1}幕：${story}`;
+  });
+  out.value = intro + (narrationLen === 'rich' ? '\n\n' : '\n') + lines.join(narrationLen === 'rich' ? '\n\n' : '\n');
+  save();
+}
+function generateCover(which) {
+  const title = document.getElementById('g-title').value || '无题';
+  const author = document.getElementById('g-author').value || '';
+  const theme = document.getElementById('g-theme').value;
+  const backTitle = document.getElementById('back-title').value || `${title}·完`;
+  const tail = globalTail();
+  const charsAll = characters.map(c => c.desc).filter(Boolean).join('; ');
+
+  if (which === 'front') {
+    const parts = [
+      selectedStyle,
+      'movie poster cinematic still',
+      charsAll ? `featuring: ${charsAll}` : '',
+      theme ? `scene: ${theme}` : '',
+      `title "${title}" displayed at top-left in elegant typography`,
+      author ? `"作者：${author}" displayed at bottom-right in small clean text` : '',
+      tail,
+      '16:9, dramatic composition, key art quality',
+    ].filter(Boolean).join(', ');
+    document.getElementById('cover-front').textContent = parts;
+  } else {
+    const parts = [
+      selectedStyle,
+      'closing scene cinematic still, epilogue feel',
+      charsAll ? `featuring: ${charsAll}` : '',
+      `title "${backTitle}" displayed at top-center in elegant typography`,
+      author ? `"作者：${author}" displayed at bottom-right in small clean text` : '',
+      tail,
+      '16:9, warm resolution mood',
+    ].filter(Boolean).join(', ');
+    document.getElementById('cover-back').textContent = parts;
+  }
+  save();
+}
+function generateMusic() {
+  const theme = document.getElementById('g-theme').value;
+  const title = document.getElementById('g-title').value || 'story';
+  const styleCn = STYLES.find(s => s[1] === selectedStyle)?.[0] || '';
+  const mood = inferMoodFromStyle(styleCn);
+  const p = `Instrumental theme music for "${title}", ${mood}, cinematic orchestral score with emotional arc (gentle intro → dramatic climax → peaceful resolution), duration 35 seconds, ${theme ? 'evoking: ' + theme : ''}, no vocals, no lyrics, background music only, high production quality, suitable for storytelling video`;
+  document.getElementById('music-out').textContent = p;
+  save();
+}
+// ═════════════════════════════════════════════════════════════
+//  Gemini API · 全局 Key 管理 + AI 智能建议
+// ═════════════════════════════════════════════════════════════
+function getApiKey() { return (document.getElementById('gemini-api-key')?.value || '').trim(); }
+
+function onApiKeyChange(v) {
+  v = (v || '').trim();
+  localStorage.setItem('gemini_key', v);
+  const statusEl = document.getElementById('api-status');
+  if (!v) {
+    document.body.classList.remove('ai-ready');
+    statusEl.className = 'api-status api-off';
+    statusEl.textContent = '○ 未启用';
+    showKeyField();
+    return;
+  }
+  if (v.length < 20) {
+    statusEl.className = 'api-status api-off';
+    statusEl.textContent = '○ Key 长度不足';
+    document.body.classList.remove('ai-ready');
+    return;
+  }
+  // 简单启用（不强制在线验证，避免阻塞 UI）
+  document.body.classList.add('ai-ready');
+  statusEl.className = 'api-status api-on';
+  statusEl.textContent = '● AI 已开启';
+}
+
+// 输入完成（失焦）后自动折叠：只显示掩码 + 修改按钮
+function maybeHideKey() {
+  const input = document.getElementById('gemini-api-key');
+  const v = (input?.value || '').trim();
+  if (v.length < 20) return;
+  hideKeyField(v);
+}
+
+function hideKeyField(v) {
+  const input = document.getElementById('gemini-api-key');
+  const btn = document.getElementById('api-key-edit-btn');
+  if (!input || !btn) return;
+  input.style.display = 'none';
+  btn.style.display = 'inline-block';
+}
+
+function showKeyField() {
+  const input = document.getElementById('gemini-api-key');
+  const btn = document.getElementById('api-key-edit-btn');
+  if (!input || !btn) return;
+  input.style.display = '';
+  btn.style.display = 'none';
+}
+
+function editApiKey() {
+  showKeyField();
+  const input = document.getElementById('gemini-api-key');
+  input?.focus();
+  input?.select();
+}
+
+// 统一的 Gemini 文字 API 调用
+// 节流：避免瞬间连击触发免费版 10 RPM 限制
+const __geminiLastCall = {}; // model -> timestamp
+const MIN_GAP_MS = { 'gemini-2.5-flash-preview-tts': 6500, 'gemini-2.5-flash-tts': 6500, 'gemini-2.5-flash': 3500 };
+
+async function callGemini(model, body, opts = {}) {
+  const key = getApiKey();
+  if (!key) throw new Error('请先在顶部填入 Gemini API Key');
+  // 节流等待
+  const gap = MIN_GAP_MS[model] || 3000;
+  const since = Date.now() - (__geminiLastCall[model] || 0);
+  if (since < gap) await new Promise(r => setTimeout(r, gap - since));
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`;
+  const maxRetries = opts.maxRetries ?? 2;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    __geminiLastCall[model] = Date.now();
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const data = await resp.json();
+    if (resp.ok) return data;
+    const msg = data.error?.message || resp.statusText || '';
+    // 429 配额：解析 retry in Xs，自动等候再试
+    if (resp.status === 429 && attempt < maxRetries) {
+      const m = msg.match(/retry in ([\d.]+)s/i);
+      const waitSec = m ? Math.min(parseFloat(m[1]) + 1, 45) : 10;
+      const elStatus = document.getElementById(opts.statusEl) || null;
+      if (elStatus) elStatus.innerHTML = `⏳ 配额已满，${Math.ceil(waitSec)} 秒后自动重试（第 ${attempt+1} 次）...`;
+      await new Promise(r => setTimeout(r, waitSec * 1000));
+      continue;
+    }
+    throw new Error(msg);
+  }
+  throw new Error('重试后仍失败，请稍后再试或使用浏览器语音');
+}
+
+// 从 Gemini 回复抽取 JSON
+function extractJSON(text) {
+  const m = text.match(/\{[\s\S]*\}/);
+  return m ? JSON.parse(m[0]) : null;
+}
+
+// ═════════════════════════════════════════════════════════════
+//  AI 智能建议声线 · 根据标题/主题/文本推荐
+// ═════════════════════════════════════════════════════════════
+async function aiSuggestVoice() {
+  const status = document.getElementById('ai-suggest-status');
+  const title = document.getElementById('g-title').value.trim();
+  const theme = document.getElementById('g-theme').value.trim();
+  const source = document.getElementById('g-source-text').value.trim().slice(0, 600);
+  const narration = document.getElementById('narration-out').value.trim().slice(0, 400);
+  if (!title && !theme && !source && !narration) {
+    showToast('请先填写标题或主题'); return;
+  }
+  status.textContent = '⏳ AI 分析中...';
+  try {
+    const voiceList = `
+说故事/抒情：Aoede(温柔女) Sulafat(温暖女) Vindemiatrix(温和女,睡前故事) Achird(友善男) Callirrhoe(随和女) Achernar(柔软女)
+教学讲解：Charon(沉稳男,纪录片) Rasalgethi(博学男,老师) Sadaltager(知识男) Iapetus(清晰男) Erinome(清晰女) Schedar(平稳男)
+动画角色：Puck(俏皮男,卡通) Fenrir(激动男,英雄反派) Sadachbia(活灵活现男) Laomedeia(活泼女) Leda(年轻女,学生) Pulcherrima(有力女)
+主播播报：Zephyr(明亮女) Autonoe(明亮女) Alnilam(坚定男) Kore(坚定女) Orus(坚实男)
+特色角色：Gacrux(成熟女,长者奶奶) Algenib(低沉磁性男) Enceladus(气息男) Algieba(柔顺男) Despina(流畅女) Umbriel(随性男) Zubenelgenubi(闲适男)
+`.trim();
+    const prompt = `你是影视配音选角专家。根据以下内容，从 Gemini TTS 声线清单中挑一个最合适的，并用一句简短中文描述朗读语气（8-15 字）。
+
+【作品信息】
+标题：${title || '(未填)'}
+主题：${theme || '(未填)'}
+${narration ? '旁白片段：' + narration : ''}
+${source ? '课文片段：' + source : ''}
+
+【声线清单】
+${voiceList}
+
+判断标准：
+- 儿童故事/童话 → 温柔女声 + 亲切语气
+- 历史/文言文 → 沉稳男声 + 讲述感
+- 科普教学 → 博学/清晰声 + 讲解语气
+- 动画片段 → 活泼/俏皮声 + 生动语气
+- 严肃寓言 → 成熟声 + 庄重语气
+
+只输出 JSON：{"voice":"Xxx","style":"中文语气描述","reason":"选这个的原因(15字内)"}`;
+    const data = await callGemini('gemini-2.5-flash', {
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: { temperature: 0.7, responseMimeType: 'application/json' }
+    });
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const json = extractJSON(text);
+    if (!json || !json.voice) { status.textContent = '❌ AI 没给出有效建议'; return; }
+    // 检查声线是否在选项里
+    const opt = document.querySelector(`#gemini-voice option[value="${json.voice}"]`);
+    if (opt) {
+      document.getElementById('gemini-voice').value = json.voice;
+    }
+    document.getElementById('gemini-style').value = json.style || '';
+    status.innerHTML = `✅ <strong>${json.voice}</strong> · ${json.style} <span style="color:var(--muted)">（${json.reason || ''}）</span>`;
+  } catch (err) {
+    status.textContent = '❌ ' + (err.message || err);
+  }
+}
+
+// AI 润色旁白 · 让内容更生动
+async function aiPolishNarration() {
+  const status = document.getElementById('ai-suggest-status');
+  const current = document.getElementById('narration-out').value.trim();
+  if (!current) { showToast('请先生成旁白'); return; }
+  status.textContent = '⏳ AI 润色中...';
+  try {
+    const prompt = `你是一位儿童教学视频旁白写手。请把下面的旁白润色得更生动、更有画面感，但保持每幕「第N幕：」的结构、字数相近。中文输出，只输出润色后的旁白文字，不要任何前后说明。
+
+原旁白：
+${current}`;
+    const data = await callGemini('gemini-2.5-flash', {
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: { temperature: 0.8 }
+    });
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    if (text) {
+      document.getElementById('narration-out').value = text.trim();
+      save();
+      status.textContent = '✅ 已润色';
+    }
+  } catch (err) {
+    status.textContent = '❌ ' + (err.message || err);
+  }
+}
+
+// ═════════════════════════════════════════════════════════════
+//  AI 生成角色 · 根据标题/主题/课文推导人设与外观锚点
+// ═════════════════════════════════════════════════════════════
+async function aiGenerateCharacters() {
+  if (!getApiKey()) { showToast('请先在顶部填入 API Key'); return; }
+  if (characters.length > 0 && !confirm(`将替换当前 ${characters.length} 个角色，确认？`)) return;
+  const status = document.getElementById('ai-char-status');
+  const title = document.getElementById('g-title').value.trim();
+  const theme = document.getElementById('g-theme').value.trim();
+  const source = document.getElementById('g-source-text').value.trim().slice(0, 1500);
+  const styleCN = (STYLES.find(s => s[1] === selectedStyle)?.[0]) || '';
+  if (!title && !theme && !source) { showToast('请先填写标题或贴课文'); return; }
+
+  status.textContent = '⏳ AI 设定角色中...';
+  try {
+    const prompt = `你是影视美术指导，专门为 AI 视频生成工具做角色设定。根据以下内容，识别故事中的主要角色（2-5 个），为每个角色写一段**英文**视觉描述，作为所有画面的角色一致性锚点。
+
+【作品信息】
+标题：${title || '(未填)'}
+主题：${theme || '(未填)'}
+整体视觉风格：${styleCN || '(未指定)'}
+${source ? '课文原文：\n' + source : ''}
+
+要求：
+- 每个角色只抽取**永久性物理特征**（不变的东西）：年龄段、发型发色、服装风格与颜色、永久配件、标志性物品
+- **不要**写动作、表情、情绪、场景（这些会在分镜里写）
+- 每段英文 20-40 字，逗号分隔关键词，可直接注入图像 Prompt
+- 第一个角色通常是主角
+
+只输出 JSON 数组：[{"name":"中文名","desc":"english visual anchor"}, ...]`;
+    const data = await callGemini('gemini-2.5-flash', {
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: { temperature: 0.7, responseMimeType: 'application/json' }
+    });
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const arr = JSON.parse(text.match(/\[[\s\S]*\]/)?.[0] || text);
+    if (!Array.isArray(arr) || !arr.length) { status.textContent = '❌ AI 没给出有效角色'; return; }
+    characters = arr.map(c => ({
+      id: ++cid,
+      name: (c.name || '').trim() || '角色',
+      desc: (c.desc || '').trim()
+    }));
+    // 现有分镜同步加入所有新角色
+    scenes.forEach(s => s.charIds = characters.map(c => c.id));
+    renderChars(); renderScenes(); save();
+    status.innerHTML = `✅ AI 已生成 <strong>${characters.length}</strong> 个角色`;
+  } catch (err) {
+    status.textContent = '❌ ' + (err.message || err);
+  }
+}
+
+// ═════════════════════════════════════════════════════════════
+//  AI 生成分镜 · 依内容 + 角色 + 风格产出 N 幕完整分镜
+// ═════════════════════════════════════════════════════════════
+async function aiGenerateScenes() {
+  if (!getApiKey()) { showToast('请先在顶部填入 API Key'); return; }
+  if (scenes.length > 0 && !confirm(`将替换当前 ${scenes.length} 幕分镜，确认？`)) return;
+  const n = Math.max(2, Math.min(12, parseInt(document.getElementById('g-num-scenes').value) || 5));
+  const status = document.getElementById('ai-scene-status');
+  const title = document.getElementById('g-title').value.trim();
+  const theme = document.getElementById('g-theme').value.trim();
+  const source = document.getElementById('g-source-text').value.trim().slice(0, 2000);
+  const styleCN = (STYLES.find(s => s[1] === selectedStyle)?.[0]) || '';
+  const charList = characters.map(c => `${c.name}: ${c.desc}`).join('\n');
+
+  if (!title && !theme && !source) { showToast('请先填写标题或贴课文'); return; }
+
+  status.textContent = '⏳ AI 编剧中，生成 ' + n + ' 幕分镜...';
+  try {
+    const prompt = `你是影视分镜师。请为下面的故事编写 ${n} 幕分镜脚本，注重起承转合与画面节奏。
+
+【作品信息】
+标题：${title || '(未填)'}
+主题：${theme || '(未填)'}
+整体视觉风格：${styleCN || '(未指定)'}
+${charList ? '角色清单：\n' + charList : '(尚未设定角色)'}
+${source ? '\n课文原文：\n' + source : ''}
+
+每一幕请输出：
+- story: 这幕中文剧情（一句话，15-30 字）
+- startDesc: 开始画面的英文描述（画面内容，20-40 字）
+- endDesc: 结束画面的英文描述（画面内容，20-40 字，与 start 要有变化或推进）
+- startShot: 镜头类型（取值范围：establishing shot / wide shot / medium shot / close-up / extreme close-up / over-the-shoulder shot / low angle shot / high angle shot / dutch angle / two-shot）
+- endShot: 同上范围
+- camMove: 运镜（取值范围：static fixed camera / slow push in / slow pull back / pan left / pan right / tilt up / tilt down / tracking shot / orbit / crane up / handheld / dolly in）
+- vidContent: 这一幕影片主要内容（中文，10-20 字）
+- vidMotion: 人物/主体动态动作（中文，10-20 字）
+- vidEnv: 环境动态（天气、光线变化、背景元素等，中文，10-20 字）
+- vidTrans: 运镜过渡（中文，10-20 字）
+- vidMood: 氛围音效（中文，10-20 字）
+
+只输出 JSON 数组：[{"story":"...","startDesc":"...","endDesc":"...","startShot":"...","endShot":"...","camMove":"...","vidContent":"...","vidMotion":"...","vidEnv":"...","vidTrans":"...","vidMood":"..."}, ...] 共 ${n} 个元素。`;
+    const data = await callGemini('gemini-2.5-flash', {
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: { temperature: 0.8, responseMimeType: 'application/json' }
+    });
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const arr = JSON.parse(text.match(/\[[\s\S]*\]/)?.[0] || text);
+    if (!Array.isArray(arr) || !arr.length) { status.textContent = '❌ AI 没给出有效分镜'; return; }
+
+    scenes = arr.map(s => ({
+      id: ++sid,
+      story: (s.story || '').trim(),
+      charIds: characters.map(c => c.id),
+      startShot: (s.startShot || 'medium shot').trim(),
+      startDesc: (s.startDesc || '').trim(),
+      endShot:   (s.endShot   || 'medium shot').trim(),
+      endDesc:   (s.endDesc   || '').trim(),
+      camMove:   (s.camMove   || 'static fixed camera').trim(),
+      startPrompt: '', endPrompt: '',
+      vidContent: (s.vidContent || '').trim(),
+      vidMotion:  (s.vidMotion  || '').trim(),
+      vidEnv:     (s.vidEnv     || '').trim(),
+      vidTrans:   (s.vidTrans   || '').trim(),
+      vidMood:    (s.vidMood    || '').trim(),
+    }));
+
+    // 自动构建 Prompt
+    scenes.forEach(s => {
+      s.startPrompt = buildScenePrompt(s, 'start');
+      s.endPrompt   = buildScenePrompt(s, 'end');
+    });
+
+    // 同步生成旁白
+    try { generateNarration(); } catch(e) {}
+
+    renderScenes(); renderExportTable(); save();
+    status.innerHTML = `✅ AI 已生成 <strong>${scenes.length}</strong> 幕完整分镜（含首尾帧 Prompt + 五维参数）`;
+  } catch (err) {
+    status.textContent = '❌ ' + (err.message || err);
+  }
+}
+
+// ═════════════════════════════════════════════════════════════
+//  试听声线 · 播放 5 秒样本
+// ═════════════════════════════════════════════════════════════
+const __voiceSampleCache = {}; // {voice_style -> blobUrl}
+async function testVoice() {
+  if (!getApiKey()) { showToast('请先在顶部填入 API Key'); return; }
+  const voice = document.getElementById('gemini-voice').value;
+  const style = document.getElementById('gemini-style').value.trim();
+  const cacheKey = voice + '|' + style;
+  const status = document.getElementById('voice-test-status');
+  const player = document.getElementById('tts-player');
+
+  if (__voiceSampleCache[cacheKey]) {
+    player.src = __voiceSampleCache[cacheKey];
+    player.style.display = 'block';
+    player.play();
+    status.textContent = `▶ 试听 ${voice}（缓存）`;
+    return;
+  }
+
+  status.textContent = `⏳ 生成 ${voice} 样本...`;
+  try {
+    const sample = style
+      ? `${style}：你好，今天让我为你讲一个精彩的故事。`
+      : `你好，今天让我为你讲一个精彩的故事。`;
+    const data = await callGemini('gemini-2.5-flash-preview-tts', {
+      contents: [{ parts: [{ text: sample }] }],
+      generationConfig: {
+        responseModalities: ['AUDIO'],
+        speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voice } } }
+      }
+    });
+    const b64 = data?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+    if (!b64) { status.textContent = '❌ 无音频'; return; }
+    const blob = pcm16ToWav(b64ToBytes(b64), 24000);
+    const urlObj = URL.createObjectURL(blob);
+    __voiceSampleCache[cacheKey] = urlObj;
+    player.src = urlObj;
+    player.style.display = 'block';
+    player.play();
+    status.textContent = `▶ 试听 ${voice}`;
+  } catch (err) {
+    status.textContent = '❌ ' + (err.message || err);
+  }
+}
+
+// ═════════════════════════════════════════════════════════════
+//  Gemini TTS · 直接把旁白变语音（gemini-2.5-flash-preview-tts）
+// ═════════════════════════════════════════════════════════════
+let lastTTSBlob = null;  // 生成出来的 WAV Blob
+
+// 24kHz 16-bit PCM bytes -> WAV Blob
+function pcm16ToWav(pcmBytes, sampleRate) {
+  const dataLen = pcmBytes.length;
+  const buf = new ArrayBuffer(44 + dataLen);
+  const view = new DataView(buf);
+  const writeStr = (o, s) => { for (let i = 0; i < s.length; i++) view.setUint8(o+i, s.charCodeAt(i)); };
+  writeStr(0, 'RIFF');
+  view.setUint32(4, 36 + dataLen, true);
+  writeStr(8, 'WAVE');
+  writeStr(12, 'fmt ');
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, 1, true);             // mono
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * 2, true);
+  view.setUint16(32, 2, true);
+  view.setUint16(34, 16, true);
+  writeStr(36, 'data');
+  view.setUint32(40, dataLen, true);
+  new Uint8Array(buf, 44).set(pcmBytes);
+  return new Blob([buf], { type: 'audio/wav' });
+}
+
+// base64 → Uint8Array
+function b64ToBytes(b64) {
+  const bin = atob(b64);
+  const u8 = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+  return u8;
+}
+
+async function geminiTTSGenerate() {
+  if (!getApiKey()) { showToast('请先在顶部填入 Gemini API Key'); return; }
+  const text = document.getElementById('narration-out').value.trim();
+  if (!text) { showToast('请先生成旁白'); return; }
+  const voice = document.getElementById('gemini-voice').value;
+  const style = document.getElementById('gemini-style').value.trim();
+  const status = document.getElementById('tts-status');
+  const player = document.getElementById('tts-player');
+
+  // 去除「第 N 幕：」前缀，避免朗读时念出分幕标记
+  const cleanText = text
+    .split('\n')
+    .map(ln => ln.replace(/^\s*第[一二三四五六七八九十百千0-9]+[幕页][：:]\s*/, ''))
+    .join('\n')
+    .trim();
+  const prompt = style ? `${style}：\n${cleanText}` : cleanText;
+  status.innerHTML = `⏳ 生成语音中（${voice}）...`;
+  document.getElementById('tts-to-srt-btn').style.display = 'none';
+  document.getElementById('tts-download-btn').style.display = 'none';
+  player.style.display = 'none';
+
+  try {
+    const data = await callGemini('gemini-2.5-flash-preview-tts', {
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: {
+        responseModalities: ['AUDIO'],
+        speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voice } } }
+      }
+    });
+    const audioB64 = data?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+    if (!audioB64) { status.innerHTML = '❌ 未收到音频数据'; return; }
+    const pcm = b64ToBytes(audioB64);
+    lastTTSBlob = pcm16ToWav(pcm, 24000);
+    const urlObj = URL.createObjectURL(lastTTSBlob);
+    player.src = urlObj;
+    player.style.display = 'block';
+    document.getElementById('tts-to-srt-btn').style.display = 'inline-flex';
+    document.getElementById('tts-download-btn').style.display = 'inline-flex';
+    const sec = (pcm.length / 2 / 24000).toFixed(1);
+    status.innerHTML = `✅ 语音已生成（${voice}，${sec} 秒）— 可试听，满意后送去转字幕`;
+  } catch (err) {
+    console.error(err);
+    status.innerHTML = `❌ 错误: ${err.message || err}`;
+  }
+}
+
+// ═════════════════════════════════════════════════════════════
+//  浏览器原生 TTS · 免费无限（Web Speech API + MediaRecorder 录制为 WAV）
+// ═════════════════════════════════════════════════════════════
+async function browserTTSGenerate() {
+  if (!('speechSynthesis' in window)) { showToast('浏览器不支持语音合成'); return; }
+  const text = document.getElementById('narration-out').value.trim();
+  if (!text) { showToast('请先生成旁白'); return; }
+  const status = document.getElementById('tts-status');
+  const player = document.getElementById('tts-player');
+  const cleanText = text.split('\n')
+    .map(ln => ln.replace(/^\s*第[一二三四五六七八九十百千0-9]+[幕页][：:]\s*/, ''))
+    .join('\n').trim();
+
+  status.innerHTML = `⏳ 浏览器语音合成中（免费，无配额限制）...`;
+  document.getElementById('tts-to-srt-btn').style.display = 'none';
+  document.getElementById('tts-download-btn').style.display = 'none';
+  player.style.display = 'none';
+
+  try {
+    // 等候声音清单载入
+    let voices = speechSynthesis.getVoices();
+    if (!voices.length) {
+      await new Promise(r => { speechSynthesis.onvoiceschanged = () => r(); setTimeout(r, 500); });
+      voices = speechSynthesis.getVoices();
+    }
+    // 挑中文声线（优先 zh-CN / zh-TW）
+    const zh = voices.find(v => /zh[-_]CN/i.test(v.lang))
+             || voices.find(v => /zh[-_]TW/i.test(v.lang))
+             || voices.find(v => /zh/i.test(v.lang))
+             || voices[0];
+
+    // 用 MediaRecorder 抓取系统朗读输出为 WebM → 再转 WAV（简化版：直接保存 WebM 让浏览器播放即可）
+    // 大多数浏览器不允许录制 speechSynthesis 输出（安全限制），所以这里改成直接朗读 + 提供下载提示
+    const utter = new SpeechSynthesisUtterance(cleanText);
+    utter.voice = zh;
+    utter.lang = zh?.lang || 'zh-CN';
+    utter.rate = 1.0;
+    utter.pitch = 1.0;
+
+    utter.onend = () => { status.innerHTML = `✅ 浏览器朗读完成（${zh?.name || '默认声线'}）`; };
+    utter.onerror = (e) => { status.innerHTML = `❌ 朗读错误: ${e.error}`; };
+    speechSynthesis.cancel();
+    speechSynthesis.speak(utter);
+    status.innerHTML = `▶ 正在朗读（${zh?.name || '默认'}，${zh?.lang || 'zh-CN'}）— 浏览器朗读不可直接保存音频；如需字幕请用 Gemini 生成的 WAV`;
+  } catch (err) {
+    console.error(err);
+    status.innerHTML = `❌ 错误: ${err.message || err}`;
+  }
+}
+
+function downloadTTSAudio() {
+  if (!lastTTSBlob) return;
+  const title = (document.getElementById('g-title')?.value || 'narration').replace(/[^\w\u4e00-\u9fff]/g, '_');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(lastTTSBlob);
+  a.download = `${title}_旁白.wav`; a.click();
+}
+
+// 把 TTS 生成的音频直接喂给 Whisper 转字幕（复用现有管道）
+async function ttsAudioToSRT() {
+  if (!lastTTSBlob) { showToast('请先生成语音'); return; }
+  // 构造 fake event 给 handleAudioUpload
+  const file = new File([lastTTSBlob], 'tts.wav', { type: 'audio/wav' });
+  const dt = new DataTransfer();
+  dt.items.add(file);
+  const fakeEvent = { target: { files: [file] } };
+  await handleAudioUpload(fakeEvent);
+}
+
+// ═════════════════════════════════════════════════════════════
+//  语音转 SRT（Whisper 本地模型，via transformers.js）
+// ═════════════════════════════════════════════════════════════
+let whisperPipe = null;
+let lastSRT = '';
+let lastAudio = null;          // Float32Array (mono)
+let lastSampleRate = 16000;
+let lastChunks = [];
+
+async function loadWhisper() {
+  if (whisperPipe) return whisperPipe;
+  const status = document.getElementById('srt-status');
+  status.innerHTML = '⏳ 首次加载 Whisper 中文模型（约 150MB，耐心等候）...';
+  const { pipeline, env } = await import('https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2');
+  env.allowLocalModels = false;
+  whisperPipe = await pipeline('automatic-speech-recognition', 'Xenova/whisper-base', {
+    progress_callback: p => {
+      if (p.status === 'progress' && p.file && p.total) {
+        const pct = Math.round((p.loaded / p.total) * 100);
+        status.innerHTML = `⏳ 下载模型 ${p.file.split('/').pop()} ... ${pct}%`;
+      } else if (p.status === 'done') {
+        status.innerHTML = '✅ 模型加载完成';
+      }
+    }
+  });
+  return whisperPipe;
+}
+
+async function handleAudioUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const status = document.getElementById('srt-status');
+  const preview = document.getElementById('srt-preview');
+  preview.textContent = '';
+  document.getElementById('srt-dl-btn').style.display = 'none';
+  document.getElementById('srt-copy-btn').style.display = 'none';
+  try {
+    await loadWhisper();
+    status.innerHTML = '🎙️ 解码音频中...';
+
+    // 解码音频为 16k 单声道 Float32 样本
+    const buf = await file.arrayBuffer();
+    const ctx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+    const decoded = await ctx.decodeAudioData(buf);
+    let audio;
+    if (decoded.numberOfChannels === 2) {
+      const L = decoded.getChannelData(0);
+      const R = decoded.getChannelData(1);
+      audio = new Float32Array(L.length);
+      for (let i = 0; i < L.length; i++) audio[i] = (L[i] + R[i]) / 2;
+    } else {
+      audio = decoded.getChannelData(0);
+    }
+
+    status.innerHTML = `🎙️ 转录中（${Math.round(audio.length / 16000)} 秒音频，约需 ${Math.round(audio.length / 16000 * 0.3)}-${Math.round(audio.length / 16000 * 0.8)} 秒）...`;
+
+    // 语言：跟随顶部 UI 切换（中文/英文）；旁白文本里含马来文时自动侦测
+    const narrText = (document.getElementById('narration-out')?.value || '');
+    const hasMalay = /\b(yang|dan|tidak|saya|kami|ini|itu|dengan|untuk|adalah|kepada|pada|kerana)\b/i.test(narrText);
+    const whisperLang = hasMalay ? 'malay' : (typeof uiLang !== 'undefined' && uiLang === 'en' ? 'english' : 'chinese');
+    const result = await whisperPipe(audio, {
+      language: whisperLang,
+      task: 'transcribe',
+      return_timestamps: true,
+      chunk_length_s: 30,
+      stride_length_s: 5,
+    });
+
+    let chunks = result.chunks || [];
+    const totalSec = audio.length / 16000;
+    const n = Math.max(2, Math.min(12,
+      parseInt(document.getElementById('g-num-scenes')?.value) ||
+      (typeof scenes !== 'undefined' && scenes.length) || 5
+    ));
+    const useText = document.getElementById('srt-use-text')?.checked;
+    const narrRaw = document.getElementById('narration-out')?.value.trim() || '';
+    let usedCorrection = false;
+    let sceneCount = n;
+    if (useText && narrRaw) {
+      const sceneTexts = parseNarrationScenes(narrRaw, n);
+      if (sceneTexts.length >= 2) {
+        // 切点数以旁白里的幕数为准（第1幕/第2幕.../第N幕）
+        sceneCount = sceneTexts.length;
+        chunks = alignChunksToText(chunks, sceneTexts, totalSec);
+        usedCorrection = true;
+      }
+    }
+    // 若未用旁白校正，再按均分方式给 chunk 打上幕索引
+    if (!usedCorrection) {
+      const points = computeSplitPoints(totalSec, n, chunks);
+      chunks = chunks.map(c => {
+        const mid = ((c.timestamp?.[0] || 0) + (c.timestamp?.[1] || 0)) / 2;
+        let sceneIdx = 0;
+        for (let i = 0; i < points.length - 1; i++) {
+          if (mid >= points[i] && mid < points[i+1]) { sceneIdx = i; break; }
+          if (i === points.length - 2 && mid >= points[i+1]) sceneIdx = i;
+        }
+        return { ...c, sceneIdx };
+      });
+    }
+
+    lastSRT = chunksToSRT(chunks);
+    lastAudio = audio;               // Float32 16kHz mono
+    lastSampleRate = 16000;
+    lastChunks = chunks;
+    __lastAlignedNarration = usedCorrection ? narrRaw : '';
+    renderSrtPreviewGrouped(chunks, n);
+    document.getElementById('srt-dl-btn').style.display = 'inline-flex';
+    document.getElementById('srt-copy-btn').style.display = 'inline-flex';
+    document.getElementById('split-audio-btn').style.display = 'inline-flex';
+    const tag = usedCorrection ? `✅ 已用旁白文本校正（切点同步到 ${sceneCount} 幕）` : '✅ 转录完成';
+    status.innerHTML = `${tag}，共 ${chunks.length} 条字幕（可直接编辑文字、调整切点，再下载 SRT 或按段切割打包）`;
+  } catch (err) {
+    console.error(err);
+    status.innerHTML = `❌ 错误: ${err.message || err}`;
+  }
+}
+
+function chunksToSRT(chunks) {
+  if (!chunks.length) return '';
+  // 把每条过长的 chunk 按标点/字数进一步切分，时间按字数比例分配
+  const entries = [];
+  chunks.forEach(c => {
+    const [start, end] = c.timestamp || [0, 0];
+    const e0 = end || start + 2;
+    const pieces = splitLongText((c.text || '').trim(), 18);
+    const totalLen = pieces.reduce((a, p) => a + p.length, 0) || 1;
+    let pos = 0;
+    pieces.forEach(p => {
+      const s = start + (e0 - start) * (pos / totalLen);
+      const e = start + (e0 - start) * ((pos + p.length) / totalLen);
+      entries.push({ start: s, end: e, text: p });
+      pos += p.length;
+    });
+  });
+  return entries.map((x, i) =>
+    `${i+1}\n${secToSRT(x.start)} --> ${secToSRT(x.end)}\n${x.text}\n`
+  ).join('\n');
+}
+
+// 按标点（。！？，、；： 换行）优先切分，超过 maxLen 时强制切
+function splitLongText(text, maxLen = 18) {
+  text = (text || '').trim();
+  if (!text) return [];
+  if (text.length <= maxLen) return [text];
+  const parts = [];
+  let buf = '';
+  for (const ch of text) {
+    buf += ch;
+    const isPunct = /[。！？，、；：!?,;:]/.test(ch);
+    if (isPunct && buf.length >= Math.ceil(maxLen * 0.5)) {
+      parts.push(buf.trim());
+      buf = '';
+    } else if (buf.length >= maxLen) {
+      // 超长也要切
+      parts.push(buf.trim());
+      buf = '';
+    }
+  }
+  if (buf.trim()) parts.push(buf.trim());
+  return parts.filter(Boolean);
+}
+
+// 把旁白文本按「第N幕：」切成 N 段，去掉前缀
+function parseNarrationScenes(text, n) {
+  const lines = text.split('\n').map(s => s.trim()).filter(Boolean);
+  const buckets = [];
+  for (const ln of lines) {
+    const m = ln.match(/^第[一二三四五六七八九十百千0-9]+[幕页][：:]\s*(.*)$/);
+    if (m) {
+      buckets.push(m[1]);
+    } else if (buckets.length) {
+      buckets[buckets.length - 1] += ln;
+    } else {
+      // 开头有引言/主题句 — 先暂存，若后面有幕标记则并入第一幕
+      buckets.push(ln);
+    }
+  }
+  // 若数量不等于 n，按原文均分字符
+  if (buckets.length !== n) {
+    const plain = text.replace(/第[一二三四五六七八九十百千0-9]+[幕页][：:]/g, '').replace(/\s+/g, '');
+    const per = Math.ceil(plain.length / n);
+    const out = [];
+    for (let i = 0; i < n; i++) out.push(plain.slice(i*per, (i+1)*per));
+    return out.filter(Boolean);
+  }
+  return buckets;
+}
+
+// 用旁白原文替换 Whisper chunk 文字：按 chunk 时长比例分配字符
+function alignChunksToText(chunks, sceneTexts, totalSec) {
+  if (!chunks.length || !sceneTexts.length) return chunks;
+  // 先算每个 scene 的时间范围（按 Whisper chunks 切）
+  const points = computeSplitPoints(totalSec, sceneTexts.length, chunks);
+  const out = chunks.map(c => ({ ...c }));
+  for (let s = 0; s < sceneTexts.length; s++) {
+    const t0 = points[s], t1 = points[s+1];
+    const sceneChunks = out.filter(c => {
+      const mid = ((c.timestamp?.[0] || 0) + (c.timestamp?.[1] || 0)) / 2;
+      return mid >= t0 && mid < t1;
+    });
+    // 直接打上幕索引 —— 底下面板切点会和旁白的幕数完全一致
+    sceneChunks.forEach(c => { c.sceneIdx = s; });
+    if (!sceneChunks.length) continue;
+    const text = (sceneTexts[s] || '').replace(/\s+/g, '');
+    if (!text) continue;
+    const totalDur = sceneChunks.reduce((sum, c) => {
+      const [a, b] = c.timestamp || [0, 0];
+      return sum + Math.max(0.1, (b || a + 1) - a);
+    }, 0);
+    let pos = 0;
+    sceneChunks.forEach((c, i) => {
+      const [a, b] = c.timestamp || [0, 0];
+      const dur = Math.max(0.1, (b || a + 1) - a);
+      let take;
+      if (i === sceneChunks.length - 1) {
+        take = text.length - pos;
+      } else {
+        take = Math.round(text.length * dur / totalDur);
+      }
+      c.text = text.slice(pos, pos + take);
+      pos += take;
+    });
+  }
+  // 兜底：没被分到的 chunk 用最近的 sceneIdx
+  for (let i = 0; i < out.length; i++) {
+    if (typeof out[i].sceneIdx !== 'number') {
+      out[i].sceneIdx = i > 0 ? out[i-1].sceneIdx : 0;
+    }
+  }
+  return out;
+}
+
+// 可编辑字幕预览 —— 文字可改 / 切点可调，下载 SRT + 按幕切割均以此为准
+function renderSrtPreviewGrouped(chunks, n) {
+  const preview = document.getElementById('srt-preview');
+  if (!preview) return;
+  if (!chunks.length) { preview.textContent = '（未识别出内容）'; return; }
+
+  const html = chunks.map((c, i) => {
+    const [a, b] = c.timestamp || [0, 0];
+    const end = b || a + 1;
+    const isCut = i > 0 && c.sceneIdx !== chunks[i-1].sceneIdx;
+    const divider = isCut
+      ? `<div style="margin:10px 0;border-top:2px dashed var(--phase-accent-solid);position:relative"><span style="position:absolute;top:-10px;left:12px;background:var(--phase-inner);padding:0 8px;font-size:0.7rem;color:var(--phase-accent-solid);font-weight:600">✂ 切点 #${i}</span></div>`
+      : '';
+    const cutBtn = isCut
+      ? `<button type="button" title="取消切点" onclick="toggleCutPoint(${i})" style="padding:3px 6px;border-radius:6px;border:1px solid var(--phase-accent-solid);background:var(--phase-accent-solid);color:#1a1d24;font-size:0.68rem;cursor:pointer;font-weight:600">✕</button>`
+      : `<button type="button" title="在此处切段" onclick="toggleCutPoint(${i})" style="padding:3px 6px;border-radius:6px;border:1px solid var(--phase-accent-solid);background:transparent;color:var(--phase-accent-solid);font-size:0.68rem;cursor:pointer">✂</button>`;
+    const timeStyle = 'width:92px;padding:6px 8px;border:1px solid var(--phase-border);border-radius:8px;background:var(--phase-inner);color:var(--fg);font-family:monospace;font-size:0.78rem;text-align:center';
+    return `${divider}
+      <div class="srt-row" data-idx="${i}" style="padding:8px 4px;display:flex;gap:10px;align-items:stretch">
+        <div style="min-width:22px;font-size:0.7rem;color:var(--muted);padding-top:8px;text-align:center">#${i+1}</div>
+        <textarea rows="1" oninput="updateChunkText(${i}, this.value); autoGrow(this)" placeholder="字幕内容..." style="flex:1;font-size:0.88rem;line-height:1.5;border:1px solid var(--phase-border);border-radius:10px;padding:10px 12px;background:var(--phase-inner);color:var(--fg);resize:none;min-height:64px">${escapeHtml((c.text || '').trim())}</textarea>
+        <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;justify-content:space-between">
+          <input type="text" value="${secToSRTShort(a)}" title="开始时间 h:mm:ss.ms" onchange="updateChunkTime(${i}, 'start', this.value)" style="${timeStyle}">
+          <input type="text" value="${secToSRTShort(end)}" title="结束时间 h:mm:ss.ms" onchange="updateChunkTime(${i}, 'end', this.value)" style="${timeStyle}">
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;justify-content:center">
+          <button type="button" title="下方加一条" onclick="addSrtRow(${i})" style="padding:2px 8px;border-radius:6px;border:1px solid #10b981;background:transparent;color:#10b981;font-size:0.78rem;cursor:pointer;font-weight:600">➕</button>
+          <button type="button" title="删除这条" onclick="removeSrtRow(${i})" style="padding:2px 8px;border-radius:6px;border:1px solid #ef4444;background:transparent;color:#ef4444;font-size:0.78rem;cursor:pointer;font-weight:600">➖</button>
+          ${cutBtn}
+        </div>
+      </div>`;
+  }).join('');
+  const topBar = `<div style="display:flex;justify-content:space-between;align-items:center;margin:0 0 10px">
+    <button type="button" onclick="addSrtRow(${chunks.length - 1})" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:20px;border:1px solid var(--phase-accent-solid);background:transparent;color:var(--phase-accent-solid);font-size:0.82rem;cursor:pointer;font-weight:600">＋ 新增字幕</button>
+    <span style="font-size:0.7rem;color:var(--muted)">共 ${chunks.length} 条 · ✏️ 文字/时间均可直接编辑</span>
+  </div>`;
+  preview.innerHTML = `${topBar}${html}`;
+  // 初始化 textarea 高度
+  preview.querySelectorAll('textarea').forEach(autoGrow);
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+function autoGrow(el) {
+  el.style.height = 'auto';
+  el.style.height = (el.scrollHeight + 2) + 'px';
+}
+function updateChunkText(i, val) {
+  if (!lastChunks[i]) return;
+  lastChunks[i].text = val;
+  lastSRT = chunksToSRT(lastChunks);  // 同步更新 SRT
+}
+
+// 在第 i 行下方插入一条：把当前行的时段劈一半，前半留给原文，后半给空行
+function addSrtRow(i) {
+  if (!lastChunks[i]) return;
+  syncPanelEdits();
+  const [a, b] = lastChunks[i].timestamp || [0, 0];
+  const end = b || a + 2;
+  const mid = (a + end) / 2;
+  lastChunks[i].timestamp = [a, mid];
+  const newRow = {
+    timestamp: [mid, end],
+    text: '',
+    sceneIdx: lastChunks[i].sceneIdx
+  };
+  lastChunks.splice(i + 1, 0, newRow);
+  lastSRT = chunksToSRT(lastChunks);
+  renderSrtPreviewGrouped(lastChunks);
+  const st = document.getElementById('srt-status');
+  if (st) st.innerHTML = `➕ 已在 #${i+1} 下方插入空白字幕（时间劈一半）— 下载 / 打包会同步`;
+}
+
+// 删除第 i 行：把它的时间顺延给上一行（或下一行，若是第一条）
+function removeSrtRow(i) {
+  if (!lastChunks[i] || lastChunks.length <= 1) return;
+  syncPanelEdits();
+  const [a, b] = lastChunks[i].timestamp || [0, 0];
+  const end = b || a + 2;
+  if (i > 0) {
+    // 时间并给上一行
+    const [pa, pb] = lastChunks[i-1].timestamp || [0, 0];
+    lastChunks[i-1].timestamp = [pa, end];
+  } else if (lastChunks[1]) {
+    // 第一条被删：时间并给下一行
+    const [na, nb] = lastChunks[1].timestamp || [0, 0];
+    lastChunks[1].timestamp = [a, nb || na + 2];
+  }
+  lastChunks.splice(i, 1);
+  // 重整 sceneIdx 避免跳号
+  const keys = [...new Set(lastChunks.map(c => c.sceneIdx))].sort((a,b)=>a-b);
+  const remap = {};
+  keys.forEach((k, idx) => remap[k] = idx);
+  lastChunks.forEach(c => { c.sceneIdx = remap[c.sceneIdx]; });
+  lastSRT = chunksToSRT(lastChunks);
+  renderSrtPreviewGrouped(lastChunks);
+  const st = document.getElementById('srt-status');
+  if (st) st.innerHTML = `➖ 已删除 #${i+1}，时间顺延给邻居 — 下载 / 打包会同步`;
+}
+// 切点 = 某条 chunk 的 sceneIdx 与上一条不同
+function toggleCutPoint(i) {
+  if (i <= 0 || !lastChunks.length) return;
+  // 先把 textarea 里未保存的内容同步回 lastChunks（避免 re-render 丢编辑）
+  document.querySelectorAll('#srt-preview textarea').forEach(ta => {
+    const row = ta.closest('.srt-row');
+    const idx = parseInt(row?.dataset.idx);
+    if (!isNaN(idx) && lastChunks[idx]) lastChunks[idx].text = ta.value;
+  });
+
+  const prev = lastChunks[i-1].sceneIdx;
+  const curr = lastChunks[i].sceneIdx;
+  if (prev !== curr) {
+    // 取消切点：把 i 之后所有 sceneIdx 往前减 1，使其合并回前一幕
+    for (let k = i; k < lastChunks.length; k++) lastChunks[k].sceneIdx -= 1;
+  } else {
+    // 新增切点：把 i 之后所有 sceneIdx 加 1
+    for (let k = i; k < lastChunks.length; k++) lastChunks[k].sceneIdx += 1;
+  }
+  // 重整 sceneIdx 为连续 0,1,2... 避免跳号
+  const keys = [...new Set(lastChunks.map(c => c.sceneIdx))].sort((a,b)=>a-b);
+  const remap = {};
+  keys.forEach((k, idx) => remap[k] = idx);
+  lastChunks.forEach(c => { c.sceneIdx = remap[c.sceneIdx]; });
+  lastSRT = chunksToSRT(lastChunks);
+  renderSrtPreviewGrouped(lastChunks);
+  // 状态提示：下载/打包会同步到当前段数
+  const segCount = keys.length;
+  const st = document.getElementById('srt-status');
+  if (st) st.innerHTML = `✂ 切点已更新 → 共 ${segCount} 段（下载 SRT / 打包 WAV 都会以此为准）`;
+}
+// 紧凑格式 h:mm:ss.ss（给面板编辑用；下载 SRT 仍用完整 secToSRT）
+function secToSRTShort(s) {
+  s = +s || 0;
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60).toString().padStart(2, '0');
+  const sec = (s % 60).toFixed(2).padStart(5, '0');
+  return `${h}:${m}:${sec}`;
+}
+// 解析 "h:mm:ss.ms" / "mm:ss" / 纯秒数 → 秒
+function parseTimeInput(str) {
+  if (str == null) return null;
+  str = String(str).trim().replace(',', '.');
+  if (!str) return null;
+  const parts = str.split(':').map(x => x.trim());
+  let s = 0;
+  if (parts.length === 3) s = (+parts[0] || 0) * 3600 + (+parts[1] || 0) * 60 + (+parts[2] || 0);
+  else if (parts.length === 2) s = (+parts[0] || 0) * 60 + (+parts[1] || 0);
+  else s = +parts[0];
+  return isNaN(s) ? null : Math.max(0, s);
+}
+function updateChunkTime(i, which, val) {
+  if (!lastChunks[i]) return;
+  const sec = parseTimeInput(val);
+  if (sec === null) { renderSrtPreviewGrouped(lastChunks); return; }
+  const [a, b] = lastChunks[i].timestamp || [0, 0];
+  if (which === 'start') lastChunks[i].timestamp = [sec, Math.max(sec, b || sec + 1)];
+  else lastChunks[i].timestamp = [Math.min(a, sec), sec];
+  lastSRT = chunksToSRT(lastChunks);
+  const st = document.getElementById('srt-status');
+  if (st) st.innerHTML = `⏱ 时间已更新（下载 / 打包会同步）`;
+}
+function secToSRT(s) {
+  s = s || 0;
+  const h = Math.floor(s / 3600).toString().padStart(2, '0');
+  const m = Math.floor((s % 3600) / 60).toString().padStart(2, '0');
+  const sec = Math.floor(s % 60).toString().padStart(2, '0');
+  const ms = Math.floor((s % 1) * 1000).toString().padStart(3, '0');
+  return `${h}:${m}:${sec},${ms}`;
+}
+let __lastAlignedNarration = '';
+
+// 如果旁白内容跟上次对齐时不一样，就重新套用
+function maybeRealignFromNarration() {
+  const narr = document.getElementById('narration-out')?.value.trim() || '';
+  if (!narr || narr === __lastAlignedNarration) return false;
+  const ok = realignTextFromNarration();
+  if (ok) {
+    __lastAlignedNarration = narr;
+    renderSrtPreviewGrouped(lastChunks);
+    const st = document.getElementById('srt-status');
+    if (st) st.innerHTML = `🔄 旁白有变动，字幕已按新文本重新分配（下载 / 打包用这份）`;
+  }
+  return ok;
+}
+
+// 用旁白文本重刷 lastChunks 的文字（保留 sceneIdx 和 timestamp）
+// 每幕的 chunks 平均分配对应那一幕的旁白，按字数比例
+function realignTextFromNarration() {
+  if (!lastChunks || !lastChunks.length) return false;
+  const useText = document.getElementById('srt-use-text')?.checked;
+  if (!useText) return false;
+  const narrRaw = document.getElementById('narration-out')?.value.trim() || '';
+  if (!narrRaw) return false;
+  const sceneKeys = [...new Set(lastChunks.map(c => c.sceneIdx))].sort((a,b)=>a-b);
+  const sceneTexts = parseNarrationScenes(narrRaw, sceneKeys.length);
+  if (sceneTexts.length < 1) return false;
+
+  sceneKeys.forEach((k, idx) => {
+    const sceneChunks = lastChunks.filter(c => c.sceneIdx === k);
+    if (!sceneChunks.length) return;
+    const text = (sceneTexts[idx] || '').replace(/\s+/g, '');
+    if (!text) return;
+    const totalDur = sceneChunks.reduce((sum, c) => {
+      const [a, b] = c.timestamp || [0, 0];
+      return sum + Math.max(0.1, (b || a + 1) - a);
+    }, 0);
+    let pos = 0;
+    sceneChunks.forEach((c, i) => {
+      const [a, b] = c.timestamp || [0, 0];
+      const dur = Math.max(0.1, (b || a + 1) - a);
+      const take = (i === sceneChunks.length - 1)
+        ? text.length - pos
+        : Math.round(text.length * dur / totalDur);
+      c.text = text.slice(pos, pos + take);
+      pos += take;
+    });
+  });
+  lastSRT = chunksToSRT(lastChunks);
+  return true;
+}
+
+// 同步面板上所有 textarea 的最新值回 lastChunks
+function syncPanelEdits() {
+  document.querySelectorAll('#srt-preview textarea').forEach(ta => {
+    const row = ta.closest('.srt-row');
+    const idx = parseInt(row?.dataset.idx);
+    if (!isNaN(idx) && lastChunks[idx]) lastChunks[idx].text = ta.value;
+  });
+}
+
+function downloadGeneratedSRT() {
+  syncPanelEdits();
+  // 若旁白改过 + 勾选校正，下载前先自动重套（不覆盖手动面板编辑，只补空缺）
+  maybeRealignFromNarration();
+  // 以面板当前编辑的 chunks 为准，每次下载都用最新内容
+  const srt = (lastChunks && lastChunks.length) ? chunksToSRT(lastChunks) : lastSRT;
+  if (!srt) { showToast('请先上传音频转录'); return; }
+  lastSRT = srt;
+  const title = (document.getElementById('g-title').value || 'subtitles').replace(/[^\w\u4e00-\u9fff]/g, '_');
+  const blob = new Blob([srt], { type: 'text/plain;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${title}.srt`; a.click();
+  showToast('SRT 已下载 ✓');
+}
+
+// ═════════════════════════════════════════════════════════════
+//  按幕切割语音 + 打包下载
+// ═════════════════════════════════════════════════════════════
+
+// Float32 -> 16-bit PCM WAV Blob
+function float32ToWav(samples, sampleRate) {
+  const buffer = new ArrayBuffer(44 + samples.length * 2);
+  const view = new DataView(buffer);
+  const writeStr = (o, s) => { for (let i = 0; i < s.length; i++) view.setUint8(o + i, s.charCodeAt(i)); };
+  writeStr(0, 'RIFF');
+  view.setUint32(4, 36 + samples.length * 2, true);
+  writeStr(8, 'WAVE');
+  writeStr(12, 'fmt ');
+  view.setUint32(16, 16, true);            // PCM chunk size
+  view.setUint16(20, 1, true);             // PCM format
+  view.setUint16(22, 1, true);             // mono
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * 2, true);// byte rate
+  view.setUint16(32, 2, true);             // block align
+  view.setUint16(34, 16, true);            // bits per sample
+  writeStr(36, 'data');
+  view.setUint32(40, samples.length * 2, true);
+  let offset = 44;
+  for (let i = 0; i < samples.length; i++) {
+    const s = Math.max(-1, Math.min(1, samples[i]));
+    view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+    offset += 2;
+  }
+  return new Blob([buffer], { type: 'audio/wav' });
+}
+
+// 计算 N 幕的切割点（秒）— 优先使用 Whisper chunks 的语义边界，否则均分
+function computeSplitPoints(totalSec, n, chunks) {
+  if (n < 2) return [0, totalSec];
+  // 理想均分点
+  const ideal = [];
+  for (let i = 1; i < n; i++) ideal.push((totalSec / n) * i);
+  // 如果有 chunks，把每个 ideal 点吸附到最近的 chunk 结束时间（避免切断字）
+  const points = [0];
+  if (chunks && chunks.length) {
+    const ends = chunks.map(c => (c.timestamp && c.timestamp[1]) || 0).filter(x => x > 0);
+    for (const t of ideal) {
+      let best = t, bestDiff = Infinity;
+      for (const e of ends) {
+        const d = Math.abs(e - t);
+        if (d < bestDiff && d < (totalSec / n) * 0.4) { bestDiff = d; best = e; }
+      }
+      points.push(best);
+    }
+  } else {
+    points.push(...ideal);
+  }
+  points.push(totalSec);
+  // 去重 & 排序
+  return [...new Set(points.map(x => +x.toFixed(3)))].sort((a,b)=>a-b);
+}
+
+async function splitAudioByScenes() {
+  if (!lastAudio) { showToast('请先上传音频'); return; }
+  if (typeof JSZip === 'undefined') { showToast('JSZip 未加载，请检查网络'); return; }
+  syncPanelEdits();  // 打包前先把面板编辑同步回来
+  maybeRealignFromNarration();  // 若旁白改过，自动重套
+  const sr = lastSampleRate;
+  const totalSec = lastAudio.length / sr;
+
+  // 以面板当前的 sceneIdx 为准，重建时间切点
+  // 切点 = (前一幕最后一条 chunk 的结束时间 + 下一幕第一条 chunk 的开始时间) / 2
+  // 这样每幕 WAV 完整包含自己的所有字幕 chunk 音频，不会把字切到下一幕
+  const chunks = lastChunks || [];
+  const hasSceneIdx = chunks.some(c => typeof c.sceneIdx === 'number');
+  let points;
+  let sceneKeys = [];
+  if (hasSceneIdx && chunks.length) {
+    sceneKeys = [...new Set(chunks.map(c => c.sceneIdx))].sort((a,b)=>a-b);
+    points = [0];
+    for (let s = 1; s < sceneKeys.length; s++) {
+      const prevScene = chunks.filter(c => c.sceneIdx === sceneKeys[s-1]);
+      const currScene = chunks.filter(c => c.sceneIdx === sceneKeys[s]);
+      const prevEnd = prevScene.length ? (prevScene[prevScene.length-1].timestamp?.[1] || 0) : 0;
+      const currStart = currScene.length ? (currScene[0].timestamp?.[0] || prevEnd) : prevEnd;
+      const mid = (prevEnd + Math.max(prevEnd, currStart)) / 2;
+      points.push(+mid.toFixed(3));
+    }
+    points.push(totalSec);
+  } else {
+    const n = Math.max(2, Math.min(12,
+      parseInt(document.getElementById('g-num-scenes')?.value) ||
+      (scenes && scenes.length) || 5
+    ));
+    points = computeSplitPoints(totalSec, n, chunks);
+    sceneKeys = Array.from({length: points.length - 1}, (_, i) => i);
+  }
+
+  const status = document.getElementById('srt-status');
+  status.innerHTML = `✂️ 切割中，共 ${points.length - 1} 段...`;
+
+  const zip = new JSZip();
+  const title = (document.getElementById('g-title')?.value || 'narration').replace(/[^\w\u4e00-\u9fff]/g, '_');
+
+  for (let i = 0; i < points.length - 1; i++) {
+    const startT = points[i], endT = points[i+1];
+    const a = Math.floor(startT * sr);
+    const b = Math.min(lastAudio.length, Math.floor(endT * sr));
+    const slice = lastAudio.subarray(a, b);
+    const wav = float32ToWav(slice, sr);
+    const fname = `${String(i+1).padStart(2,'0')}_${title}.wav`;
+    zip.file(fname, wav);
+
+  }
+
+  // 完整 SRT（整部作品贯穿时间轴，方便整支剪辑）
+  const fullSRT = chunksToSRT(chunks);
+  if (fullSRT) zip.file(`${title}_完整字幕.srt`, fullSRT);
+  const manifest = points.slice(0, -1).map((p, i) => {
+    const e = points[i+1];
+    return `${String(i+1).padStart(2,'0')}  ${secToSRT(p)} → ${secToSRT(e)}  (${(e-p).toFixed(2)} 秒)`;
+  }).join('\n');
+  zip.file('切割清单.txt',
+    `作品：${title}\n总时长：${totalSec.toFixed(2)} 秒\n段数：${points.length - 1}\n\n${manifest}\n\n说明：切点与字幕内容均来自面板当前编辑状态。`
+  );
+
+  status.innerHTML = '📦 打包 ZIP 中...';
+  const blob = await zip.generateAsync({ type: 'blob' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${title}_语音包.zip`; a.click();
+  status.innerHTML = `✅ 已下载（${points.length - 1} 段 WAV + 完整字幕 SRT）`;
+  showToast(`已打包 ${points.length - 1} 段语音 ✓`);
+}
+
+function inferMoodFromStyle(cn) {
+  if (!cn) return 'emotional and uplifting';
+  if (/朋克|科幻|赛博|故障/.test(cn)) return 'electronic, synth-heavy, futuristic';
+  if (/黑暗|哥特|野兽/.test(cn)) return 'dark, ominous, dramatic';
+  if (/童话|皮克斯|吉卜力|绘本/.test(cn)) return 'warm, whimsical, magical';
+  if (/极简|扁平|包豪斯/.test(cn)) return 'minimal, clean ambient';
+  if (/水彩|印象|粉彩|新艺术/.test(cn)) return 'soft, lyrical, delicate';
+  return 'emotional cinematic orchestral';
+}
+
+// ═════════════════════════════════════════════════════════════
+//  导出
+// ═════════════════════════════════════════════════════════════
+function renderExportTable() {
+  const tbody = document.getElementById('export-tbody');
+  if (!scenes.length) { tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--muted);padding:20px">尚无分镜</td></tr>'; return; }
+  tbody.innerHTML = scenes.map((s, i) => {
+    const charNames = s.charIds.map(id => characters.find(c => c.id === id)?.name).filter(Boolean).join(', ');
+    return `<tr>
+      <td style="font-weight:700;color:var(--primary-l)">${i+1}</td>
+      <td>${escapeHtml(s.story)}</td>
+      <td style="color:var(--cyan)">${escapeHtml(charNames)}</td>
+      <td class="code">${escapeHtml(s.startPrompt || '(未生成)')}</td>
+      <td class="code">${escapeHtml(s.endPrompt || '(未生成)')}</td>
+      <td>${escapeHtml(s.vidContent)}</td>
+      <td>${escapeHtml(s.vidMotion)}</td>
+      <td>${escapeHtml(s.vidEnv)}</td>
+      <td>${escapeHtml(s.vidTrans)}</td>
+      <td>${escapeHtml(s.vidMood)}</td>
+    </tr>`;
+  }).join('');
+}
+function exportRows() {
+  return scenes.map((s, i) => {
+    const chars = s.charIds.map(id => characters.find(c => c.id === id)?.name).filter(Boolean).join(', ');
+    return [i+1, s.story, chars, s.startPrompt, s.endPrompt, s.vidContent, s.vidMotion, s.vidEnv, s.vidTrans, s.vidMood];
+  });
+}
+function downloadCSV() {
+  if (!scenes.length) { showToast('尚无分镜'); return; }
+  const head = ['幕','剧情','角色','开始画面Prompt','结束画面Prompt','影片内容','动态动作','环境动态','运镜过渡','氛围音效'];
+  const csv = [head, ...exportRows()].map(r => r.map(csvEscape).join(',')).join('\n');
+  const title = (document.getElementById('g-title').value || 'storyboard').replace(/[^\w\u4e00-\u9fff]/g, '_');
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${title}_分镜表.csv`; a.click();
+  showToast('CSV 已下载 ✓');
+}
+function copyTSV() {
+  if (!scenes.length) { showToast('尚无分镜'); return; }
+  const head = ['幕','剧情','角色','开始画面Prompt','结束画面Prompt','影片内容','动态动作','环境动态','运镜过渡','氛围音效'];
+  const tsv = [head, ...exportRows().map(r => r.map(v => String(v||'').replace(/\t/g,' ').replace(/\n/g,' ')))].map(r => r.join('\t')).join('\n');
+  navigator.clipboard.writeText(tsv).then(() => showToast('表格已复制 ✓ 可贴到 Excel/Sheets'));
+}
+function copyFullReport() {
+  const title = document.getElementById('g-title').value || '无题';
+  const author = document.getElementById('g-author').value;
+  const theme = document.getElementById('g-theme').value;
+  const styleCn = STYLES.find(s => s[1] === selectedStyle)?.[0] || '';
+  const narration = document.getElementById('narration-out').value;
+  const front = document.getElementById('cover-front').textContent;
+  const back = document.getElementById('cover-back').textContent;
+  const music = document.getElementById('music-out').textContent;
+
+  let out = `═════════════════════════════════════════\n  《${title}》AI 分镜完整报告\n`;
+  if (author) out += `  作者：${author}\n`;
+  out += `═════════════════════════════════════════\n\n`;
+  if (theme) out += `📖 故事主题：\n${theme}\n\n`;
+  out += `🎨 视觉风格：${styleCn} (${selectedStyle})\n\n`;
+
+  out += `─── 角色锚点 ────────────────────────────\n`;
+  characters.forEach((c, i) => out += `${i+1}. ${c.name}\n   ${c.desc}\n`);
+  out += '\n';
+
+  out += `─── 分镜脚本 ────────────────────────────\n\n`;
+  scenes.forEach((s, i) => {
+    const chars = s.charIds.map(id => characters.find(c => c.id === id)?.name).filter(Boolean).join(', ');
+    out += `【第 ${i+1} 幕】${s.story}\n角色：${chars}\n\n▶ 首帧 Prompt：\n${s.startPrompt}\n\n⏹ 尾帧 Prompt：\n${s.endPrompt}\n\n🎥 视频五维：\n  ① 影片内容：${s.vidContent}\n  ② 动态动作：${s.vidMotion}\n  ③ 环境动态：${s.vidEnv}\n  ④ 运镜过渡：${s.vidTrans}\n  ⑤ 氛围音效：${s.vidMood}\n\n${'─'.repeat(40)}\n\n`;
+  });
+
+  if (narration) out += `─── 旁白文案 ────────────────\n${narration}\n\n`;
+  if (front) out += `─── 封面 Prompt ─────────────────────────\n${front}\n\n`;
+  if (back) out += `─── 封底 Prompt ─────────────────────────\n${back}\n\n`;
+  if (music) out += `─── 主题曲 Prompt ───────────────────────\n${music}\n\n`;
+
+  navigator.clipboard.writeText(out).then(() => showToast('完整报告已复制 ✓'));
+}
+function csvEscape(v) {
+  const s = String(v ?? '');
+  if (/[",\n]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+  return s;
+}
+
+// ═════════════════════════════════════════════════════════════
+//  工具
+// ═════════════════════════════════════════════════════════════
+function copyText(t) {
+  if (!t) { showToast('内容为空'); return; }
+  navigator.clipboard.writeText(t).then(() => showToast('已复制 ✓'));
+}
+function escapeHtml(s) { return String(s||'').replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[c]); }
+function escapeAttr(s) { return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]); }
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+// ═════════════════════════════════════════════════════════════
+//  保存 / 加载
+// ═════════════════════════════════════════════════════════════
+const KEY = 'ai_director_v1';
+function save() {
+  const data = {
+    characters, scenes, cid, sid, selectedStyle,
+    gTitle: document.getElementById('g-title').value,
+    gAuthor: document.getElementById('g-author').value,
+    gTheme: document.getElementById('g-theme').value,
+    gLens: document.getElementById('g-lens').value,
+    gLight: document.getElementById('g-light').value,
+    gQuality: document.getElementById('g-quality').value,
+    backTitle: document.getElementById('back-title').value,
+    srcMode: document.querySelector('input[name="src-mode"]:checked')?.value || 'auto',
+    numScenes: document.getElementById('g-num-scenes').value,
+    sourceText: document.getElementById('g-source-text').value,
+    narration: document.getElementById('narration-out').value,
+    coverFront: document.getElementById('cover-front').textContent,
+    coverBack: document.getElementById('cover-back').textContent,
+    music: document.getElementById('music-out').textContent,
+  };
+  localStorage.setItem(KEY, JSON.stringify(data));
+  const a = document.getElementById('g-author').value;
+  const ap = document.getElementById('author-preview-a');
+  if (ap) ap.textContent = a || '___';
+}
+function load() {
+  try {
+    // 恢复 Gemini API key + 同步 AI 状态（自动隐藏成掩码）
+    const savedKey = localStorage.getItem('gemini_key');
+    if (savedKey) {
+      const el = document.getElementById('gemini-api-key');
+      if (el) {
+        el.value = savedKey;
+        onApiKeyChange(savedKey);
+        if (savedKey.length >= 20) hideKeyField(savedKey);
+      }
+    }
+    // 强制锁定 NotebookLM 工作流
+    const _nbmRadio = document.querySelector('input[name="src-mode"][value="notebooklm"]');
+    if (_nbmRadio) _nbmRadio.checked = true;
+    const raw = localStorage.getItem(KEY);
+    if (!raw) { renderStyleTabs(); renderStyleGrid(); render(); toggleSourceMode(); return; }
+    const d = JSON.parse(raw);
+    characters = d.characters || []; scenes = d.scenes || [];
+    cid = d.cid || 0; sid = d.sid || 0;
+    selectedStyle = d.selectedStyle || selectedStyle;
+    ['gTitle|g-title','gAuthor|g-author','gTheme|g-theme','gLens|g-lens','gLight|g-light','gQuality|g-quality','backTitle|back-title'].forEach(pair => {
+      const [k, id] = pair.split('|');
+      if (d[k] != null) document.getElementById(id).value = d[k];
+    });
+    // 永远锁在 notebooklm 模式，忽略已存模式
+    { const r = document.querySelector('input[name="src-mode"][value="notebooklm"]');
+      if (r) { r.checked = true; toggleSourceMode(); } }
+    if (d.numScenes) document.getElementById('g-num-scenes').value = d.numScenes;
+    if (d.sourceText) document.getElementById('g-source-text').value = d.sourceText;
+    if (d.narration) document.getElementById('narration-out').value = d.narration;
+    if (d.coverFront) document.getElementById('cover-front').textContent = d.coverFront;
+    if (d.coverBack) document.getElementById('cover-back').textContent = d.coverBack;
+    if (d.music) document.getElementById('music-out').textContent = d.music;
+    renderStyleTabs(); renderStyleGrid(); render();
+  } catch(e) { renderStyleTabs(); renderStyleGrid(); render(); }
+}
+function render() { renderChars(); renderScenes(); renderExportTable(); }
+
+// 全局保存监听
+document.addEventListener('input', e => {
+  if (e.target.id && e.target.id.startsWith('g-') || e.target.id === 'back-title' || e.target.id === 'narration-out') save();
+});
+
+// 旁白变动后，若字幕面板已生成 + 勾了校正，自动同步
+const __narrEl = document.getElementById('narration-out');
+if (__narrEl) {
+  __narrEl.addEventListener('input', () => {
+    clearTimeout(window.__narrRealignTimer);
+    window.__narrRealignTimer = setTimeout(() => {
+      if (lastChunks && lastChunks.length) maybeRealignFromNarration();
+    }, 800);
+  });
+}
+
+// ═════════════════════════════════════════════════════════════
+//  i18n · 简易中英切换
+// ═════════════════════════════════════════════════════════════
+const I18N = {
+  zh: {
+    loadDemo: '📦 载入范例', reset: '🗑️ 清空重来',
+    confirmReset: '确定清空所有资料？',
+    nbmHint: '💡 NotebookLM 会自动依据你上传的课文素材，给出 N 页简报插图建议',
+    nbmPasteTitle: '📥 贴入 NotebookLM 回传的大纲',
+    nbmParseBtn: '✨ 解析 → 生成旁白',
+    nbmPasteHint: '贴上后会自动提取每页的「故事原文」，依序生成旁白文案并填到下方「🎙️ 语音 + 字幕」区',
+    nbmPastePh: '直接把 NotebookLM 产出的 5 页大纲贴在这里...',
+    parsedOk: '已解析 {n} 页故事原文，旁白已生成 ✓',
+    parsedEmpty: '未侦测到「故事原文」段落，请确认格式',
+  },
+  en: {
+    loadDemo: '📦 Load Demo', reset: '🗑️ Reset',
+    confirmReset: 'Clear all data?',
+    nbmHint: '💡 NotebookLM will produce N-page illustration outline from your uploaded source',
+    nbmPasteTitle: '📥 Paste NotebookLM response outline',
+    nbmParseBtn: '✨ Parse → Build narration',
+    nbmPasteHint: 'We will auto-extract each page\'s "Original story text" and fill the narration below',
+    nbmPastePh: 'Paste the full NotebookLM outline here...',
+    parsedOk: 'Parsed {n} pages of story text — narration ready ✓',
+    parsedEmpty: 'No "Original story text" sections detected; please check format',
+  }
+};
+let uiLang = localStorage.getItem('uiLang') || 'zh';
+function T(k) { return (I18N[uiLang] && I18N[uiLang][k]) || I18N.zh[k] || k; }
+function setUiLang(lang) {
+  uiLang = (lang === 'en') ? 'en' : 'zh';
+  localStorage.setItem('uiLang', uiLang);
+  document.documentElement.lang = uiLang === 'en' ? 'en' : 'zh-CN';
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const k = el.getAttribute('data-i18n');
+    if (I18N[uiLang][k]) el.textContent = I18N[uiLang][k];
+  });
+  document.querySelectorAll('[data-i18n-ph]').forEach(el => {
+    const k = el.getAttribute('data-i18n-ph');
+    if (I18N[uiLang][k]) el.setAttribute('placeholder', I18N[uiLang][k]);
+  });
+  const sel = document.getElementById('ui-lang');
+  if (sel) sel.value = uiLang;
+  // TTS 语气占位与 SRT 语言跟随
+  const st = document.getElementById('gemini-style');
+  if (st) st.placeholder = uiLang === 'en'
+    ? 'e.g. warm storytelling tone / bedtime story / cheerful'
+    : '例：温柔缓慢地讲述 / 像说睡前故事 / 欢快活泼 (中/英/马来文皆可)';
+  // 重新生成 NBM prompt（语言跟随）
+  try { if (typeof generateNbmPrompt === 'function') generateNbmPrompt(); } catch(e){}
+}
+
+// ═════════════════════════════════════════════════════════════
+//  NotebookLM 回传大纲 → 提取「故事原文」→ 自动生成旁白
+// ═════════════════════════════════════════════════════════════
+function parseNbmAndBuildNarration() {
+  const raw = document.getElementById('nbm-paste')?.value || '';
+  const status = document.getElementById('nbm-parse-status');
+  if (!raw.trim()) {
+    if (status) status.textContent = T('parsedEmpty');
+    showToast(T('parsedEmpty'));
+    return;
+  }
+  // 容错匹配多种写法：故事原文 / Original story text / Story text / 原文
+  // 抓取 "故事原文" 冒号后直到下一行以 * 或 ** 或空行开头
+  const patterns = [
+    /\*{0,2}\s*(?:故事原文|原文|Original\s+story\s+text|Story\s+text)\s*\*{0,2}\s*[：:]\s*([\s\S]*?)(?=\n\s*[\*\-•]|\n\s*\*{2}|\n\s*第[一二三四五六七八九十百千0-9]+[页幕]|\n\s*(?:Page|Scene)\s*\d|\n\s*\n|$)/gi,
+  ];
+  const extracted = [];
+  for (const re of patterns) {
+    let m;
+    while ((m = re.exec(raw)) !== null) {
+      const txt = (m[1] || '')
+        .replace(/^[“"']+|[”"']+$/g, '')
+        .replace(/\s+/g, '')
+        .trim();
+      if (txt) extracted.push(txt);
+    }
+    if (extracted.length) break;
+  }
+  if (!extracted.length) {
+    if (status) status.textContent = T('parsedEmpty');
+    showToast(T('parsedEmpty'));
+    return;
+  }
+  // 填入旁白框：第X幕：原文
+  const lines = extracted.map((t, i) => `第${i+1}幕：${t}`);
+  const out = document.getElementById('narration-out');
+  if (out) {
+    out.value = lines.join('\n');
+  }
+  // 展开语音区以便使用
+  const voice = document.getElementById('extra-voice');
+  if (voice && voice.style.display === 'none') voice.style.display = 'block';
+  if (status) status.textContent = T('parsedOk').replace('{n}', extracted.length);
+  showToast(T('parsedOk').replace('{n}', extracted.length));
+  save();
+  setTimeout(() => out?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 200);
+}
+
+// 初始化语言
+setUiLang(uiLang);
+load();
+</script>
+<footer style="text-align:center;padding:20px;color:#8892b0;font-size:0.78rem;border-top:1px solid var(--border);margin-top:40px">@ 2026 Designed by Wei Wen. All rights reserved</footer>
+</body>
+</html>
