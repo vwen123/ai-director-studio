@@ -431,12 +431,11 @@
     <!-- ② 内容来源 -->
     <div style="margin-top:14px;padding:14px 16px;background:var(--bg2);border:1px dashed var(--phase-accent);border-radius:10px">
       <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
-        <strong style="font-size:0.85rem;color:var(--phase-accent);margin-right:4px" data-i18n="nbmWorkflow">📘 NotebookLM 工作流</strong>
         <label class="radio-pill active" id="pill-nbm" style="display:none">
           <input type="radio" name="src-mode" value="notebooklm" checked>
           <span>📘 NotebookLM</span>
         </label>
-        <span style="margin-left:10px;font-size:0.75rem;color:var(--muted)" data-i18n="numScenes">幕数</span>
+        <span style="font-size:0.8rem;color:var(--muted)" data-i18n="numScenes">幕数</span>
         <input type="number" id="g-num-scenes" value="5" min="2" max="12" style="width:54px;text-align:center" oninput="onNumScenesChange()">
       </div>
       <!-- 课文/剧本原文已按需求移除，保留隐藏字段以兼容脚本 -->
@@ -470,6 +469,19 @@
       <span id="style-selected-label" style="color:var(--muted)" data-i18n="styleNone">（未选，请点击上方选择）</span>
     </div>
 
+    <!-- 📘 NotebookLM 指令生成（并入区块 1） -->
+    <div style="margin-top:18px;padding-top:14px;border-top:1px dashed var(--phase-accent-solid)">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <strong style="color:var(--phase-accent);font-size:0.9rem" data-i18n="nbmPanelTitle">📘 NotebookLM 指令生成</strong>
+      </div>
+      <div class="btn-row" style="margin-bottom:10px">
+        <button class="btn btn-primary btn-sm" onclick="generateNbmPrompt()" data-i18n="nbmGenBtn">⚡ 生成 NotebookLM Prompt</button>
+        <button class="btn btn-green btn-sm" onclick="copyText(document.getElementById('nbm-out').textContent)" data-i18n="nbmCopyBtn">📋 复制给 NotebookLM</button>
+      </div>
+      <div class="hint" data-i18n="nbmHint">💡 NotebookLM 会自动依据你上传的课文素材，给出 N 页简报插图建议</div>
+      <div class="prompt-out" id="nbm-out" style="margin-top:10px;font-size:0.85rem;min-height:140px;white-space:pre-wrap"></div>
+    </div>
+
     <!-- 以下为兼容脚本而保留的隐藏字段（镜头/光影/质感已按需求移除） -->
     <select id="g-lens" style="display:none">
       <option value="85mm lens, shallow depth of field" selected></option>
@@ -480,24 +492,18 @@
     <input type="hidden" id="g-quality" value="">
   </div>
 
-  <!-- ═════ NotebookLM 专用分支（替代步骤 2/3） ═════ -->
+  <!-- ═════ 区块 2 · 贴入大纲 → 语音字幕 ═════ -->
   <div class="phase phase-nb" id="phase-nbm" style="display:none">
     <div class="phase-head">
-      <span class="phase-num">NotebookLM</span>
+      <span class="phase-num" data-i18n="section2Num">区块 2</span>
       <div>
-        <div class="phase-title" data-i18n="nbmPanelTitle">📘 NotebookLM 指令生成</div>
-        <div class="phase-desc" data-i18n="nbmPanelDesc">把下面的 Prompt 复制到 NotebookLM，让它根据你上传的课文产出分镜插图大纲</div>
+        <div class="phase-title" data-i18n="section2Title">📥 贴入大纲 → 🎙️ 语音 · 字幕</div>
+        <div class="phase-desc" data-i18n="section2Desc">把 NotebookLM 回传的大纲贴进来，系统自动抽出故事原文并生成旁白 → 一键转语音 / 字幕</div>
       </div>
     </div>
-    <div class="btn-row" style="margin-bottom:10px">
-      <button class="btn btn-primary btn-sm" onclick="generateNbmPrompt()" data-i18n="nbmGenBtn">⚡ 生成 NotebookLM Prompt</button>
-      <button class="btn btn-green btn-sm" onclick="copyText(document.getElementById('nbm-out').textContent)" data-i18n="nbmCopyBtn">📋 复制给 NotebookLM</button>
-    </div>
-    <div class="hint" data-i18n="nbmHint">💡 NotebookLM 会自动依据你上传的课文素材，给出 N 页简报插图建议</div>
-    <div class="prompt-out" id="nbm-out" style="margin-top:10px;font-size:0.85rem;min-height:140px;white-space:pre-wrap"></div>
 
     <!-- 📥 贴入 NotebookLM 生成的大纲，自动抽取「故事原文」生成旁白 -->
-    <div style="margin-top:16px;padding:14px;background:var(--phase-inner-2);border:1px dashed var(--phase-accent-solid);border-radius:10px">
+    <div style="padding:14px;background:var(--phase-inner-2);border:1px dashed var(--phase-accent-solid);border-radius:10px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
         <strong style="color:var(--phase-accent);font-size:0.9rem" data-i18n="nbmPasteTitle">📥 贴入 NotebookLM 回传的大纲</strong>
         <div style="flex:1"></div>
@@ -507,6 +513,9 @@
       <textarea id="nbm-paste" rows="10" style="margin-top:8px" data-i18n-ph="nbmPastePh" placeholder="直接把 NotebookLM 产出的 5 页大纲贴在这里..."></textarea>
       <div id="nbm-parse-status" style="margin-top:6px;font-size:0.8rem;color:var(--muted)"></div>
     </div>
+
+    <!-- 🎙️ 语音 + 字幕（常驻显示） -->
+    <div id="phase-nbm-voice-mount" style="margin-top:16px"></div>
   </div>
 
   <!-- ═════ 步骤 2 · 角色 ═════ -->
@@ -557,14 +566,13 @@
   <!-- ═════ 步骤 4 · 语音字幕（含可选封面/主题曲） ═════ -->
   <div class="phase phase-c4" id="phase-extras">
     <div class="phase-head">
-      <span class="phase-num" data-i18n="step4">步骤 4</span>
+      <span class="phase-num" data-i18n="section3Num">特别素材</span>
       <div>
-        <div class="phase-title" data-i18n="p4Title">🎙️ 语音 · 字幕</div>
-        <div class="phase-desc" data-i18n="p4Desc">旁白 → TTS → 上传音频转 SRT → 按幕切割打包</div>
+        <div class="phase-title" data-i18n="p4Title">✨ 特别素材</div>
+        <div class="phase-desc" data-i18n="p4Desc">根据故事原文生成：封面封底剧照 Prompt · 主题曲 Prompt</div>
       </div>
     </div>
     <div class="btn-row" style="margin-bottom:12px">
-      <button class="btn btn-amber" onclick="toggleExtra('voice')" data-i18n="voiceToggle">🎙️ 生成语音 + 字幕</button>
       <button class="btn btn-cyan" onclick="toggleExtra('cover')" data-i18n="coverToggle">🖼️ 封面 / 封底</button>
       <button class="btn btn-pink" onclick="toggleExtra('music')" data-i18n="musicToggle">🎵 主题曲</button>
     </div>
@@ -685,30 +693,33 @@
 
     <!-- 🖼️ 封面 / 封底 -->
     <div class="extra-block" id="extra-cover" style="display:none">
+      <div class="row-flex" style="margin-bottom:10px;gap:8px;flex-wrap:wrap;align-items:center">
+        <label style="margin:0;flex:0 0 auto" data-i18n="coverAuthorLabel">作者署名（可选，填写会出现在图片右下角）</label>
+        <input type="text" id="cover-author" data-i18n-ph="coverAuthorPh" placeholder="例：王瑋文" style="flex:1;min-width:160px" oninput="generateCover('front'); generateCover('back')">
+      </div>
       <div class="grid-2">
         <div>
           <div class="extra-head">
-            <span class="extra-title"><span class="emoji">🖼️</span>封面剧照 Prompt</span>
+            <span class="extra-title"><span class="emoji">🖼️</span><span data-i18n="coverFrontTitle">封面剧照 Prompt</span></span>
             <div class="btn-row">
-              <button class="btn btn-primary btn-sm" onclick="generateCover('front')">⚡ 重新生成</button>
+              <button class="btn btn-primary btn-sm" onclick="generateCover('front')" data-i18n="regen">⚡ 重新生成</button>
               <button class="btn btn-outline btn-sm" onclick="copyText(document.getElementById('cover-front').textContent)">📋</button>
             </div>
           </div>
-          <div class="hint">图中：标题（左上）+「作者：<span id="author-preview-a">___</span>」（右下）</div>
           <div class="prompt-out" id="cover-front"></div>
         </div>
 
         <div>
           <div class="extra-head">
-            <span class="extra-title"><span class="emoji">🖼️</span>封底剧照 Prompt</span>
+            <span class="extra-title"><span class="emoji">🖼️</span><span data-i18n="coverBackTitle">封底剧照 Prompt</span></span>
             <div class="btn-row">
-              <button class="btn btn-primary btn-sm" onclick="generateCover('back')">⚡ 重新生成</button>
+              <button class="btn btn-primary btn-sm" onclick="generateCover('back')" data-i18n="regen">⚡ 重新生成</button>
               <button class="btn btn-outline btn-sm" onclick="copyText(document.getElementById('cover-back').textContent)">📋</button>
             </div>
           </div>
           <div class="row-flex" style="margin-top:4px">
-            <label style="margin:0;flex:0 0 60px">封底标题</label>
-            <input type="text" id="back-title" placeholder="例：智慧永流传" style="flex:1">
+            <label style="margin:0;flex:0 0 60px" data-i18n="backTitleLabel">封底标题</label>
+            <input type="text" id="back-title" data-i18n-ph="backTitlePh" placeholder="例：智慧永流传" style="flex:1">
           </div>
           <div class="prompt-out" id="cover-back"></div>
         </div>
@@ -718,13 +729,12 @@
     <!-- 🎵 主题曲 -->
     <div class="extra-block" id="extra-music" style="display:none">
       <div class="extra-head">
-        <span class="extra-title"><span class="emoji">🎵</span>主题曲 Prompt（纯背景音乐，无人声）</span>
+        <span class="extra-title"><span class="emoji">🎵</span><span data-i18n="musicTitle">主题曲 Prompt</span></span>
         <div class="btn-row">
-          <button class="btn btn-primary btn-sm" onclick="generateMusic()">⚡ 重新生成</button>
+          <button class="btn btn-primary btn-sm" onclick="generateMusic()" data-i18n="regen">⚡ 重新生成</button>
           <button class="btn btn-outline btn-sm" onclick="copyText(document.getElementById('music-out').textContent)">📋</button>
         </div>
       </div>
-      <div class="hint">贴到 Suno / Udio / Google MusicFX 生成。自动标注 instrumental only, no vocals</div>
       <div class="prompt-out" id="music-out"></div>
     </div>
   </div>
@@ -1930,46 +1940,72 @@ function generateNarration() {
   out.value = intro + (narrationLen === 'rich' ? '\n\n' : '\n') + lines.join(narrationLen === 'rich' ? '\n\n' : '\n');
   save();
 }
+// 从旁白框提取"故事原文"主干（去除第X幕前缀）
+function _storySource() {
+  const raw = (document.getElementById('narration-out')?.value || '').trim();
+  if (!raw) return '';
+  return raw.split('\n')
+    .map(l => l.replace(/^\s*第[一二三四五六七八九十百千0-9]+[幕页][：:]\s*/, '').trim())
+    .filter(Boolean)
+    .join(' ');
+}
+// 旁白首幕（开场）用于封面
+function _storyOpening() {
+  const raw = (document.getElementById('narration-out')?.value || '').trim();
+  if (!raw) return '';
+  const first = raw.split('\n').find(l => l.trim());
+  return (first || '').replace(/^\s*第[一二三四五六七八九十百千0-9]+[幕页][：:]\s*/, '').trim();
+}
+// 旁白末幕（收束）用于封底
+function _storyEnding() {
+  const raw = (document.getElementById('narration-out')?.value || '').trim();
+  if (!raw) return '';
+  const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
+  const last = lines[lines.length - 1] || '';
+  return last.replace(/^\s*第[一二三四五六七八九十百千0-9]+[幕页][：:]\s*/, '').trim();
+}
+
 function generateCover(which) {
   const title = document.getElementById('g-title').value || '无题';
-  const author = document.getElementById('g-author').value || '';
-  const theme = document.getElementById('g-theme').value;
-  const backTitle = document.getElementById('back-title').value || `${title}·完`;
+  const author = (document.getElementById('cover-author')?.value || '').trim();
+  const backTitle = document.getElementById('back-title')?.value || `${title}·完`;
   const tail = globalTail();
-  const charsAll = characters.map(c => c.desc).filter(Boolean).join('; ');
+  const source = _storySource();
+  const opening = _storyOpening();
+  const ending = _storyEnding();
 
   if (which === 'front') {
     const parts = [
       selectedStyle,
-      'movie poster cinematic still',
-      charsAll ? `featuring: ${charsAll}` : '',
-      theme ? `scene: ${theme}` : '',
+      'movie poster cinematic still illustrating the STORY opening',
+      opening ? `opening scene from the story: ${opening}` : (source ? `story: ${source.slice(0, 200)}` : ''),
       `title "${title}" displayed at top-left in elegant typography`,
-      author ? `"作者：${author}" displayed at bottom-right in small clean text` : '',
+      author ? `"作者：${author}" displayed at bottom-right in small clean serif text` : '',
       tail,
-      '16:9, dramatic composition, key art quality',
+      '16:9, dramatic composition, key art quality, faithful to the original story content',
     ].filter(Boolean).join(', ');
     document.getElementById('cover-front').textContent = parts;
   } else {
     const parts = [
       selectedStyle,
-      'closing scene cinematic still, epilogue feel',
-      charsAll ? `featuring: ${charsAll}` : '',
+      'closing scene cinematic still, epilogue feel, illustrating the STORY ending',
+      ending ? `ending scene from the story: ${ending}` : (source ? `story: ${source.slice(-200)}` : ''),
       `title "${backTitle}" displayed at top-center in elegant typography`,
-      author ? `"作者：${author}" displayed at bottom-right in small clean text` : '',
+      author ? `"作者：${author}" displayed at bottom-right in small clean serif text` : '',
       tail,
-      '16:9, warm resolution mood',
+      '16:9, warm resolution mood, faithful to the original story content',
     ].filter(Boolean).join(', ');
     document.getElementById('cover-back').textContent = parts;
   }
   save();
 }
 function generateMusic() {
-  const theme = document.getElementById('g-theme').value;
   const title = document.getElementById('g-title').value || 'story';
-  const styleCn = STYLES.find(s => s[1] === selectedStyle)?.[0] || '';
+  const styleCn = (Array.isArray(STYLES) ? STYLES.find(s => s[1] === selectedStyle)?.[0] : '') || '';
   const mood = inferMoodFromStyle(styleCn);
-  const p = `Instrumental theme music for "${title}", ${mood}, cinematic orchestral score with emotional arc (gentle intro → dramatic climax → peaceful resolution), duration 35 seconds, ${theme ? 'evoking: ' + theme : ''}, no vocals, no lyrics, background music only, high production quality, suitable for storytelling video`;
+  const source = _storySource();
+  const storyLine = source ? `strictly inspired by this story: "${source.slice(0, 400)}"` : '';
+  const p = `Instrumental theme music for "${title}", ${mood}, cinematic orchestral score with emotional arc that mirrors the narrative (gentle intro → rising tension → peaceful resolution), duration 35 seconds, ${storyLine}, no vocals, no lyrics, background music only, high production quality, suitable for storytelling video`;
   document.getElementById('music-out').textContent = p;
   save();
 }
@@ -3323,6 +3359,14 @@ const I18N = {
     p4Desc: '旁白 → TTS → 上传音频转 SRT → 按幕切割打包',
     voiceToggle: '🎙️ 生成语音 + 字幕',
     coverToggle: '🖼️ 封面 / 封底', musicToggle: '🎵 主题曲',
+    section2Num: '区块 2', section2Title: '📥 贴入大纲 → 🎙️ 语音 · 字幕',
+    section2Desc: '把 NotebookLM 回传的大纲贴进来，系统自动抽出故事原文并生成旁白 → 一键转语音 / 字幕',
+    section3Num: '特别素材',
+    coverAuthorLabel: '作者署名（可选，填写会出现在图片右下角）',
+    coverAuthorPh: '例：王瑋文',
+    coverFrontTitle: '封面剧照 Prompt', coverBackTitle: '封底剧照 Prompt',
+    backTitleLabel: '封底标题', backTitlePh: '例：智慧永流传',
+    musicTitle: '主题曲 Prompt',
     narrTitle: '旁白文案', regen: '⚡ 重新生成', copyStudio: '📋 复制给 Google AI Studio',
     styleLabel: '风格：', narrStd: '📖 原文旁白', narrRich: '✨ 生动旁白',
     voiceFlow: '① 生成旁白 → ② 选声线一键转语音 → ③ 试听满意 → ④ 转字幕 → ⑤ 按幕切割打包',
@@ -3373,6 +3417,14 @@ const I18N = {
     p4Desc: 'Narration → TTS → upload audio to SRT → split by scene & download',
     voiceToggle: '🎙️ Generate voice + subtitles',
     coverToggle: '🖼️ Cover / Back cover', musicToggle: '🎵 Theme song',
+    section2Num: 'Section 2', section2Title: '📥 Paste outline → 🎙️ Voice · Subtitles',
+    section2Desc: 'Paste the NotebookLM outline — we auto-extract the story text, build narration, then one-click TTS / SRT',
+    section3Num: 'Specials',
+    coverAuthorLabel: 'Author (optional — appears at bottom-right of image)',
+    coverAuthorPh: 'e.g. Wei Wen',
+    coverFrontTitle: 'Cover still Prompt', coverBackTitle: 'Back cover still Prompt',
+    backTitleLabel: 'Back title', backTitlePh: 'e.g. Wisdom endures',
+    musicTitle: 'Theme song Prompt',
     narrTitle: 'Narration script', regen: '⚡ Regenerate', copyStudio: '📋 Copy for Google AI Studio',
     styleLabel: 'Style:', narrStd: '📖 Original text', narrRich: '✨ Enriched narration',
     voiceFlow: '① Generate narration → ② pick voice & TTS → ③ preview → ④ to SRT → ⑤ split & bundle',
@@ -3481,6 +3533,13 @@ function parseNbmAndBuildNarration() {
   save();
   setTimeout(() => out?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 200);
 }
+
+// 把「语音 + 字幕」从原「特别素材」区挂到 phase-nbm 底部并常驻显示
+(function mountVoiceIntoNbm(){
+  const v = document.getElementById('extra-voice');
+  const mount = document.getElementById('phase-nbm-voice-mount');
+  if (v && mount) { v.style.display = 'block'; mount.appendChild(v); }
+})();
 
 // 初始化语言
 setUiLang(uiLang);
