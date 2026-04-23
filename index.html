@@ -459,7 +459,7 @@
     </div>
 
     <!-- ③ 视觉风格 -->
-    <label style="margin-top:16px" data-i18n="styleHeader">🎨 视觉风格（点击后自动套用到 NotebookLM Prompt）</label>
+    <label style="margin-top:16px" data-i18n="styleHeader">🎨 视觉风格</label>
     <!-- 搜索框已按需求移除，保留隐藏字段以兼容脚本 -->
     <input class="style-search" id="style-search" type="text" style="display:none">
     <div class="style-tabs" id="style-tabs"></div>
@@ -478,7 +478,6 @@
         <button class="btn btn-primary btn-sm" onclick="generateNbmPrompt()" data-i18n="nbmGenBtn">⚡ 生成 NotebookLM Prompt</button>
         <button class="btn btn-green btn-sm" onclick="copyText(document.getElementById('nbm-out').textContent)" data-i18n="nbmCopyBtn">📋 复制给 NotebookLM</button>
       </div>
-      <div class="hint" data-i18n="nbmHint">💡 NotebookLM 会自动依据你上传的课文素材，给出 N 页简报插图建议</div>
       <div class="prompt-out" id="nbm-out" style="margin-top:10px;font-size:0.85rem;min-height:140px;white-space:pre-wrap"></div>
     </div>
 
@@ -509,8 +508,7 @@
         <div style="flex:1"></div>
         <button class="btn btn-primary btn-sm" onclick="parseNbmAndBuildNarration()" data-i18n="nbmParseBtn">✨ 解析 → 生成旁白</button>
       </div>
-      <div class="hint" data-i18n="nbmPasteHint">贴上后会自动提取每页的「故事原文」，依序生成旁白文案并填到下方「🎙️ 语音 + 字幕」区</div>
-      <textarea id="nbm-paste" rows="10" style="margin-top:8px" data-i18n-ph="nbmPastePh" placeholder="直接把 NotebookLM 产出的 5 页大纲贴在这里..."></textarea>
+      <textarea id="nbm-paste" rows="10" style="margin-top:8px" data-i18n-ph="nbmPastePh" placeholder="直接把 NotebookLM 产出的大纲贴在这里..."></textarea>
       <div id="nbm-parse-status" style="margin-top:6px;font-size:0.8rem;color:var(--muted)"></div>
     </div>
 
@@ -585,7 +583,6 @@
           <button class="btn btn-green btn-sm" onclick="copyText(document.getElementById('narration-out').value)" title="复制 / Copy">📋</button>
         </div>
       </div>
-      <div class="hint" data-i18n="voiceFlow">① 生成旁白 → ② 选声线一键转语音 → ③ 试听满意 → ④ 转字幕 → ⑤ 按幕切割打包</div>
       <textarea id="narration-out" rows="6" style="margin-top:8px" data-i18n-ph="narrPh" placeholder="旁白将自动产出，可手动编辑"></textarea>
 
       <!-- 🎤 Gemini TTS 直接生成语音 -->
@@ -640,6 +637,10 @@
                 <option value="Zubenelgenubi">Zubenelgenubi · 闲适随意（男）</option>
               </optgroup>
             </select>
+            <div class="btn-row" style="margin-top:6px">
+              <button class="btn btn-outline btn-sm" onclick="testVoice()" data-i18n="testVoice">▶️ 试听当前声线</button>
+              <span id="voice-test-status" style="font-size:0.72rem;color:var(--muted);align-self:center"></span>
+            </div>
           </div>
           <div>
             <label data-i18n="toneLabel">🎨 语气描述（可选）</label>
@@ -651,10 +652,6 @@
               <button type="button" class="btn btn-outline btn-sm" onclick="setTonePreset('pro')" data-i18n="tonePro">专业知性</button>
               <button type="button" class="btn btn-outline btn-sm" onclick="setTonePreset('nostalgic')" data-i18n="toneNostalgic">怀念感性</button>
               <button type="button" class="btn btn-outline btn-sm" onclick="setTonePreset('playful')" data-i18n="tonePlayful">俏皮捣蛋</button>
-            </div>
-            <div class="btn-row" style="margin-top:6px">
-              <button class="btn btn-outline btn-sm" onclick="testVoice()" data-i18n="testVoice">▶️ 试听当前声线</button>
-              <span id="voice-test-status" style="font-size:0.72rem;color:var(--muted);align-self:center"></span>
             </div>
           </div>
         </div>
@@ -674,11 +671,10 @@
           <span class="extra-title"><span class="emoji">🎧</span><span data-i18n="srtTitle">语音转 SRT 字幕（上传既有录音）</span></span>
           <div class="btn-row">
             <button class="btn btn-green btn-sm" id="srt-dl-btn" style="display:none" onclick="downloadGeneratedSRT()" data-i18n="downloadSrt">⬇️ 下载 .srt</button>
-            <button class="btn btn-outline btn-sm" id="srt-copy-btn" style="display:none" onclick="copyText(lastSRT)" data-i18n="copy">📋 复制</button>
+            <button class="btn btn-outline btn-sm" id="srt-copy-btn" style="display:none !important" onclick="copyText(lastSRT)">📋</button>
             <button class="btn btn-primary btn-sm" id="split-audio-btn" style="display:none" onclick="splitAudioByScenes()" data-i18n="splitZip">✂️ 按幕切割 + 打包下载</button>
           </div>
         </div>
-        <div class="hint" data-i18n="srtHint">上传 mp3/wav → 浏览器本地 Whisper 转 SRT（首次下载约 150MB 模型）</div>
         <div class="row-flex" style="margin-top:10px;gap:14px;flex-wrap:wrap">
           <input type="file" id="audio-upload" accept="audio/*" onchange="handleAudioUpload(event)">
           <label style="display:inline-flex;align-items:center;gap:6px;font-size:0.82rem;color:var(--fg);cursor:pointer">
@@ -693,10 +689,6 @@
 
     <!-- 🖼️ 封面 / 封底 -->
     <div class="extra-block" id="extra-cover" style="display:none">
-      <div class="row-flex" style="margin-bottom:10px;gap:8px;flex-wrap:wrap;align-items:center">
-        <label style="margin:0;flex:0 0 auto" data-i18n="coverAuthorLabel">作者署名（可选，填写会出现在图片右下角）</label>
-        <input type="text" id="cover-author" data-i18n-ph="coverAuthorPh" placeholder="例：王瑋文" style="flex:1;min-width:160px" oninput="generateCover('front'); generateCover('back')">
-      </div>
       <div class="grid-2">
         <div>
           <div class="extra-head">
@@ -707,6 +699,10 @@
             </div>
           </div>
           <div class="prompt-out" id="cover-front"></div>
+          <div class="row-flex" style="margin-top:8px;gap:8px;align-items:center">
+            <label style="margin:0;flex:0 0 auto" data-i18n="coverAuthorLabel">作者署名</label>
+            <input type="text" id="cover-author" data-i18n-ph="coverAuthorPh" placeholder="例：王瑋文" style="flex:1;min-width:120px" oninput="generateCover('front'); generateCover('back')">
+          </div>
         </div>
 
         <div>
@@ -2000,12 +1996,10 @@ function generateCover(which) {
   save();
 }
 function generateMusic() {
-  const title = document.getElementById('g-title').value || 'story';
   const styleCn = (Array.isArray(STYLES) ? STYLES.find(s => s[1] === selectedStyle)?.[0] : '') || '';
   const mood = inferMoodFromStyle(styleCn);
-  const source = _storySource();
-  const storyLine = source ? `strictly inspired by this story: "${source.slice(0, 400)}"` : '';
-  const p = `Instrumental theme music for "${title}", ${mood}, cinematic orchestral score with emotional arc that mirrors the narrative (gentle intro → rising tension → peaceful resolution), duration 35 seconds, ${storyLine}, no vocals, no lyrics, background music only, high production quality, suitable for storytelling video`;
+  // 30 秒背景音乐：只描述氛围与风格，不写入故事剧情
+  const p = `30-second instrumental background music, ${mood}, soft cinematic ambience, gentle emotional melody, no vocals, no lyrics, looping-friendly, suitable as the opening theme of a short animated story`;
   document.getElementById('music-out').textContent = p;
   save();
 }
@@ -3339,10 +3333,10 @@ const I18N = {
     reset: '🗑️ 清空重来', confirmReset: '确定清空所有资料？',
     apiKeyLabel: 'Gemini API Key', apiKeyPh: 'AIzaSy... (仅存本地浏览器)',
     edit: '修改', apiOff: '○ 未启用', apiOn: '● 已启用', freeApply: '免费申请 →',
-    step1: '步骤 1', p1Title: '📋 作品标题', p1Desc: '输入作品标题与幕数',
+    step1: '1', p1Title: '📋 作品标题', p1Desc: '输入作品标题与幕数',
     titleLabel: '作品标题', titlePh: '例：草船借箭',
     nbmWorkflow: '📘 NotebookLM 工作流', numScenes: '幕数',
-    styleHeader: '🎨 视觉风格（点击后自动套用到 NotebookLM Prompt）',
+    styleHeader: '🎨 视觉风格',
     styleSearchPh: '🔍 搜索全部风格...',
     styleSelected: '已选：', styleNone: '（未选，请点击上方选择）',
     nbmPanelTitle: '📘 NotebookLM 指令生成',
@@ -3352,17 +3346,17 @@ const I18N = {
     nbmPasteTitle: '📥 贴入 NotebookLM 回传的大纲',
     nbmParseBtn: '✨ 解析 → 生成旁白',
     nbmPasteHint: '贴上后会自动提取每页的「故事原文」，依序生成旁白文案并填到下方「🎙️ 语音 + 字幕」区',
-    nbmPastePh: '直接把 NotebookLM 产出的 5 页大纲贴在这里...',
+    nbmPastePh: '直接把 NotebookLM 产出的大纲贴在这里...',
     parsedOk: '已解析 {n} 页故事原文，旁白已生成 ✓',
     parsedEmpty: '未侦测到「故事原文」段落，请确认格式',
-    step4: '步骤 4', p4Title: '🎙️ 语音 · 字幕',
-    p4Desc: '旁白 → TTS → 上传音频转 SRT → 按幕切割打包',
+    step4: '特别素材', p4Title: '✨ 特别素材',
+    p4Desc: '根据故事原文生成：封面封底剧照 Prompt · 主题曲 Prompt',
     voiceToggle: '🎙️ 生成语音 + 字幕',
     coverToggle: '🖼️ 封面 / 封底', musicToggle: '🎵 主题曲',
-    section2Num: '区块 2', section2Title: '📥 贴入大纲 → 🎙️ 语音 · 字幕',
-    section2Desc: '把 NotebookLM 回传的大纲贴进来，系统自动抽出故事原文并生成旁白 → 一键转语音 / 字幕',
+    section2Num: '2', section2Title: '🎙️ 语音 · 字幕',
+    section2Desc: '贴入大纲 → 一键转语音',
     section3Num: '特别素材',
-    coverAuthorLabel: '作者署名（可选，填写会出现在图片右下角）',
+    coverAuthorLabel: '作者署名',
     coverAuthorPh: '例：王瑋文',
     coverFrontTitle: '封面剧照 Prompt', coverBackTitle: '封底剧照 Prompt',
     backTitleLabel: '封底标题', backTitlePh: '例：智慧永流传',
@@ -3371,16 +3365,16 @@ const I18N = {
     styleLabel: '风格：', narrStd: '📖 原文旁白', narrRich: '✨ 生动旁白',
     voiceFlow: '① 生成旁白 → ② 选声线一键转语音 → ③ 试听满意 → ④ 转字幕 → ⑤ 按幕切割打包',
     narrPh: '旁白将自动产出，可手动编辑',
-    ttsTitle: '一键转语音', needApiKey: '⚠️ 请先在顶部填入 API Key',
-    voiceLineLabel: '🎭 声线（Gemini 全部 30 种，已分类）',
+    ttsTitle: '语音生成', needApiKey: '⚠️ 请先在顶部填入 API Key',
+    voiceLineLabel: '🎭 声线',
     toneLabel: '🎨 语气描述（可选）',
     tonePh: '例：温柔缓慢地讲述 / 像说睡前故事 / 欢快活泼（中/英/马来文皆可）',
     toneWarm: '温暖亲切', toneEnergetic: '热血活力', toneMystery: '神秘探险',
     tonePro: '专业知性', toneNostalgic: '怀念感性', tonePlayful: '俏皮捣蛋',
-    testVoice: '▶️ 试听当前声线', ttsGen: '🎤 一键生成语音', toStudio: '🌐 AI Studio',
+    testVoice: '▶️ 试听当前声线', ttsGen: '🎤 语音生成', toStudio: '🌐 AI Studio',
     ttsToSrt: '📝 将这段语音转字幕', downloadWav: '⬇️ 下载 WAV',
     ttsHint: '💡 Gemini 免费版限 10 次/分钟；超限可先到 Google AI Studio 生成，再下载 WAV 回来转字幕',
-    srtTitle: '语音转 SRT 字幕（上传既有录音）',
+    srtTitle: '语音转 SRT 字幕（上传音档）',
     downloadSrt: '⬇️ 下载 .srt', copy: '📋 复制', splitZip: '✂️ 按幕切割 + 打包下载',
     srtHint: '上传 mp3/wav → 浏览器本地 Whisper 转 SRT（首次下载约 150MB 模型）',
     srtUseText: '📖 用旁白文本校正',
@@ -3397,10 +3391,10 @@ const I18N = {
     reset: '🗑️ Reset', confirmReset: 'Clear all data?',
     apiKeyLabel: 'Gemini API Key', apiKeyPh: 'AIzaSy... (stored locally only)',
     edit: 'Edit', apiOff: '○ Disabled', apiOn: '● Enabled', freeApply: 'Get free key →',
-    step1: 'Step 1', p1Title: '📋 Project Title', p1Desc: 'Enter the title and number of scenes',
+    step1: '1', p1Title: '📋 Project Title', p1Desc: 'Enter the title and number of scenes',
     titleLabel: 'Project Title', titlePh: 'e.g. Borrowing Arrows with Straw Boats',
     nbmWorkflow: '📘 NotebookLM Workflow', numScenes: 'Scenes',
-    styleHeader: '🎨 Visual style (auto-applied to the NotebookLM Prompt)',
+    styleHeader: '🎨 Visual style',
     styleSearchPh: '🔍 Search all styles...',
     styleSelected: 'Selected:', styleNone: '(none — click a style above)',
     nbmPanelTitle: '📘 Generate NotebookLM Prompt',
@@ -3413,14 +3407,14 @@ const I18N = {
     nbmPastePh: 'Paste the full NotebookLM outline here...',
     parsedOk: 'Parsed {n} pages of story text — narration ready ✓',
     parsedEmpty: 'No "Original story text" sections detected; please check format',
-    step4: 'Step 4', p4Title: '🎙️ Voice · Subtitles',
-    p4Desc: 'Narration → TTS → upload audio to SRT → split by scene & download',
+    step4: 'Specials', p4Title: '✨ Specials',
+    p4Desc: 'Generated from the story text: cover / back cover Prompt · theme song Prompt',
     voiceToggle: '🎙️ Generate voice + subtitles',
     coverToggle: '🖼️ Cover / Back cover', musicToggle: '🎵 Theme song',
-    section2Num: 'Section 2', section2Title: '📥 Paste outline → 🎙️ Voice · Subtitles',
-    section2Desc: 'Paste the NotebookLM outline — we auto-extract the story text, build narration, then one-click TTS / SRT',
+    section2Num: '2', section2Title: '🎙️ Voice · Subtitles',
+    section2Desc: 'Paste outline → One-click TTS',
     section3Num: 'Specials',
-    coverAuthorLabel: 'Author (optional — appears at bottom-right of image)',
+    coverAuthorLabel: 'Author',
     coverAuthorPh: 'e.g. Wei Wen',
     coverFrontTitle: 'Cover still Prompt', coverBackTitle: 'Back cover still Prompt',
     backTitleLabel: 'Back title', backTitlePh: 'e.g. Wisdom endures',
@@ -3429,8 +3423,8 @@ const I18N = {
     styleLabel: 'Style:', narrStd: '📖 Original text', narrRich: '✨ Enriched narration',
     voiceFlow: '① Generate narration → ② pick voice & TTS → ③ preview → ④ to SRT → ⑤ split & bundle',
     narrPh: 'Narration will appear here — you can edit freely',
-    ttsTitle: 'One-click voice', needApiKey: '⚠️ Please enter the API Key at the top first',
-    voiceLineLabel: '🎭 Voice (all 30 Gemini voices, categorised)',
+    ttsTitle: 'Voice generation', needApiKey: '⚠️ Please enter the API Key at the top first',
+    voiceLineLabel: '🎭 Voice',
     toneLabel: '🎨 Tone description (optional)',
     tonePh: 'e.g. warm storytelling / like a bedtime story / cheerful (Chinese, English, Malay all work)',
     toneWarm: 'Warm & kind', toneEnergetic: 'Energetic', toneMystery: 'Mystery adventure',
@@ -3438,7 +3432,7 @@ const I18N = {
     testVoice: '▶️ Preview voice', ttsGen: '🎤 Generate voice', toStudio: '🌐 AI Studio',
     ttsToSrt: '📝 Convert this voice to subtitles', downloadWav: '⬇️ Download WAV',
     ttsHint: '💡 Gemini free tier allows 10/min; over the limit — generate in AI Studio, download WAV and bring it back here',
-    srtTitle: 'Audio → SRT subtitles (upload recording)',
+    srtTitle: 'Audio → SRT subtitles (upload audio)',
     downloadSrt: '⬇️ Download .srt', copy: '📋 Copy', splitZip: '✂️ Split by scene + ZIP',
     srtHint: 'Upload mp3/wav → local Whisper in browser produces SRT (first run downloads ~150MB model)',
     srtUseText: '📖 Align with narration text',
