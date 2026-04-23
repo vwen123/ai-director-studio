@@ -698,7 +698,7 @@
           <div class="prompt-out" id="cover-front"></div>
           <div class="row-flex" style="margin-top:8px;gap:8px;align-items:center">
             <label style="margin:0;flex:0 0 auto" data-i18n="coverAuthorLabel">作者署名</label>
-            <input type="text" id="cover-author" style="flex:1;min-width:120px" oninput="generateCover('front'); generateCover('back')">
+            <input type="text" id="cover-author" placeholder="输入名字" data-i18n-ph="coverAuthorPh" style="flex:1;min-width:120px" oninput="generateCover('front'); generateCover('back')">
           </div>
         </div>
 
@@ -3388,7 +3388,7 @@ const I18N = {
     section2Desc: '贴入大纲 → 一键转语音',
     section3Num: '',
     coverAuthorLabel: '作者署名',
-    coverAuthorPh: '',
+    coverAuthorPh: '输入名字',
     coverFrontTitle: '封面剧照 Prompt', coverBackTitle: '封底剧照 Prompt',
     backTitleLabel: '封底标题', backTitlePh: '例：智慧永流传',
     musicTitle: '背景音乐 Prompt',
@@ -3447,7 +3447,7 @@ const I18N = {
     section2Desc: 'Paste outline → One-click TTS',
     section3Num: '',
     coverAuthorLabel: 'Author',
-    coverAuthorPh: '',
+    coverAuthorPh: 'Enter name',
     coverFrontTitle: 'Cover still Prompt', coverBackTitle: 'Back cover still Prompt',
     backTitleLabel: 'Back title', backTitlePh: 'e.g. Wisdom endures',
     musicTitle: 'Background music Prompt',
