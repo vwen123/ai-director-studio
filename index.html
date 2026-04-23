@@ -572,18 +572,8 @@
       <div class="extra-head">
         <span class="extra-title"><span class="emoji">🎙️</span><span data-i18n="narrTitle">旁白文案</span></span>
         <div class="btn-row">
-          <button class="btn btn-primary btn-sm" onclick="generateNarration()" data-i18n="regen">⚡ 重新生成</button>
-          <button class="btn btn-green btn-sm" onclick="copyText(document.getElementById('narration-out').value)" data-i18n="copyStudio">📋 复制给 Google AI Studio</button>
+          <button class="btn btn-green btn-sm" onclick="copyText(document.getElementById('narration-out').value)" title="复制 / Copy">📋</button>
         </div>
-      </div>
-      <div class="row-flex" style="margin-top:6px">
-        <span style="font-size:0.76rem;color:var(--muted)" data-i18n="styleLabel">风格：</span>
-        <label class="radio-pill active" id="pill-len-std">
-          <input type="radio" name="nar-len" value="std" checked onchange="setNarrationLen('std')"><span data-i18n="narrStd">📖 原文旁白</span>
-        </label>
-        <label class="radio-pill" id="pill-len-rich">
-          <input type="radio" name="nar-len" value="rich" onchange="setNarrationLen('rich')"><span data-i18n="narrRich">✨ 生动旁白</span>
-        </label>
       </div>
       <div class="hint" data-i18n="voiceFlow">① 生成旁白 → ② 选声线一键转语音 → ③ 试听满意 → ④ 转字幕 → ⑤ 按幕切割打包</div>
       <textarea id="narration-out" rows="6" style="margin-top:8px" data-i18n-ph="narrPh" placeholder="旁白将自动产出，可手动编辑"></textarea>
@@ -660,7 +650,7 @@
         </div>
         <div class="btn-row" style="margin-top:10px">
           <button class="btn btn-primary btn-sm" onclick="geminiTTSGenerate()" data-i18n="ttsGen">🎤 一键生成语音</button>
-          <a class="btn btn-amber btn-sm" href="https://aistudio.google.com/generate-speech" target="_blank" style="text-decoration:none" data-i18n="toStudio">🌐 去 Google AI Studio 试听</a>
+          <a class="btn btn-amber btn-sm" href="https://aistudio.google.com/generate-speech" target="_blank" style="text-decoration:none;padding:4px 8px;font-size:0.72rem" title="Google AI Studio" data-i18n="toStudio">🌐 AI Studio</a>
           <button class="btn btn-green btn-sm" id="tts-to-srt-btn" style="display:none" onclick="ttsAudioToSRT()" data-i18n="ttsToSrt">📝 将这段语音转字幕</button>
           <button class="btn btn-cyan btn-sm" id="tts-download-btn" style="display:none" onclick="downloadTTSAudio()" data-i18n="downloadWav">⬇️ 下载 WAV</button>
         </div>
@@ -3340,7 +3330,7 @@ const I18N = {
     tonePh: '例：温柔缓慢地讲述 / 像说睡前故事 / 欢快活泼（中/英/马来文皆可）',
     toneWarm: '温暖亲切', toneEnergetic: '热血活力', toneMystery: '神秘探险',
     tonePro: '专业知性', toneNostalgic: '怀念感性', tonePlayful: '俏皮捣蛋',
-    testVoice: '▶️ 试听当前声线', ttsGen: '🎤 一键生成语音', toStudio: '🌐 去 Google AI Studio 试听',
+    testVoice: '▶️ 试听当前声线', ttsGen: '🎤 一键生成语音', toStudio: '🌐 AI Studio',
     ttsToSrt: '📝 将这段语音转字幕', downloadWav: '⬇️ 下载 WAV',
     ttsHint: '💡 Gemini 免费版限 10 次/分钟；超限可先到 Google AI Studio 生成，再下载 WAV 回来转字幕',
     srtTitle: '语音转 SRT 字幕（上传既有录音）',
@@ -3389,7 +3379,7 @@ const I18N = {
     tonePh: 'e.g. warm storytelling / like a bedtime story / cheerful (Chinese, English, Malay all work)',
     toneWarm: 'Warm & kind', toneEnergetic: 'Energetic', toneMystery: 'Mystery adventure',
     tonePro: 'Professional', toneNostalgic: 'Nostalgic', tonePlayful: 'Playful & cheeky',
-    testVoice: '▶️ Preview voice', ttsGen: '🎤 Generate voice', toStudio: '🌐 Open Google AI Studio',
+    testVoice: '▶️ Preview voice', ttsGen: '🎤 Generate voice', toStudio: '🌐 AI Studio',
     ttsToSrt: '📝 Convert this voice to subtitles', downloadWav: '⬇️ Download WAV',
     ttsHint: '💡 Gemini free tier allows 10/min; over the limit — generate in AI Studio, download WAV and bring it back here',
     srtTitle: 'Audio → SRT subtitles (upload recording)',
