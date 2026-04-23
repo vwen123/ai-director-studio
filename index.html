@@ -563,16 +563,12 @@
 
   <!-- ═════ 步骤 4 · 语音字幕（含可选封面/主题曲） ═════ -->
   <div class="phase phase-c4" id="phase-extras">
-    <div class="phase-head">
-      <span class="phase-num" data-i18n="section3Num">特别素材</span>
-      <div>
-        <div class="phase-title" data-i18n="p4Title">✨ 特别素材</div>
-        <div class="phase-desc" data-i18n="p4Desc">根据故事原文生成：封面封底剧照 Prompt · 主题曲 Prompt</div>
+    <div style="margin-bottom:12px">
+      <div class="phase-desc" data-i18n="p4Desc" style="margin-bottom:10px">生成封面/封底与背景音乐</div>
+      <div class="btn-row">
+        <button class="btn btn-cyan" onclick="toggleExtra('cover')" data-i18n="coverToggle">🖼️ 封面 / 封底</button>
+        <button class="btn btn-pink" onclick="toggleExtra('music')" data-i18n="musicToggle">🎵 背景音乐</button>
       </div>
-    </div>
-    <div class="btn-row" style="margin-bottom:12px">
-      <button class="btn btn-cyan" onclick="toggleExtra('cover')" data-i18n="coverToggle">🖼️ 封面 / 封底</button>
-      <button class="btn btn-pink" onclick="toggleExtra('music')" data-i18n="musicToggle">🎵 主题曲</button>
     </div>
 
     <!-- 🎙️ 语音 + 字幕 -->
@@ -701,7 +697,7 @@
           <div class="prompt-out" id="cover-front"></div>
           <div class="row-flex" style="margin-top:8px;gap:8px;align-items:center">
             <label style="margin:0;flex:0 0 auto" data-i18n="coverAuthorLabel">作者署名</label>
-            <input type="text" id="cover-author" data-i18n-ph="coverAuthorPh" placeholder="例：王瑋文" style="flex:1;min-width:120px" oninput="generateCover('front'); generateCover('back')">
+            <input type="text" id="cover-author" style="flex:1;min-width:120px" oninput="generateCover('front'); generateCover('back')">
           </div>
         </div>
 
@@ -722,16 +718,21 @@
       </div>
     </div>
 
-    <!-- 🎵 主题曲 -->
+    <!-- 🎵 背景音乐 -->
     <div class="extra-block" id="extra-music" style="display:none">
       <div class="extra-head">
-        <span class="extra-title"><span class="emoji">🎵</span><span data-i18n="musicTitle">主题曲 Prompt</span></span>
+        <span class="extra-title"><span class="emoji">🎵</span><span data-i18n="musicTitle">背景音乐 Prompt</span></span>
         <div class="btn-row">
           <button class="btn btn-primary btn-sm" onclick="generateMusic()" data-i18n="regen">⚡ 重新生成</button>
           <button class="btn btn-outline btn-sm" onclick="copyText(document.getElementById('music-out').textContent)">📋</button>
         </div>
       </div>
       <div class="prompt-out" id="music-out"></div>
+    </div>
+
+    <!-- ⬇️ 下载封面/封底/主题曲为单个 .txt -->
+    <div id="specials-dl-wrap" class="btn-row" style="display:none;margin-top:14px">
+      <button class="btn btn-green" onclick="downloadSpecialsTxt()" data-i18n="downloadSpecialsTxt">⬇️ 下载 .txt（封面 + 封底 + 背景音乐）</button>
     </div>
   </div>
 
@@ -1731,6 +1732,35 @@ function toggleExtra(type) {
       else if (type === 'music' && typeof generateMusic === 'function') generateMusic();
     } catch(e) { console.warn(e); }
   }
+  // 切换「下载 .txt」按钮：封面或音乐任一打开时显示
+  try {
+    const dl = document.getElementById('specials-dl-wrap');
+    if (dl) {
+      const cOpen = (document.getElementById('extra-cover')?.style.display || 'none') !== 'none';
+      const mOpen = (document.getElementById('extra-music')?.style.display || 'none') !== 'none';
+      dl.style.display = (cOpen || mOpen) ? 'flex' : 'none';
+    }
+  } catch(e) {}
+}
+
+function downloadSpecialsTxt() {
+  const title = (document.getElementById('g-title')?.value || '').trim() || 'specials';
+  const author = (document.getElementById('cover-author')?.value || '').trim();
+  const front = (document.getElementById('cover-front')?.textContent || '').trim();
+  const back  = (document.getElementById('cover-back')?.textContent || '').trim();
+  const music = (document.getElementById('music-out')?.textContent || '').trim();
+  const sep = '\n\n' + '─'.repeat(60) + '\n\n';
+  const parts = [`《${title}》— 封面 / 封底 / 背景音乐 Prompts`];
+  if (author) parts.push(`作者：${author}`);
+  if (front)  parts.push(sep + '🖼️ 封面剧照 Prompt' + sep + front);
+  if (back)   parts.push(sep + '🖼️ 封底剧照 Prompt' + sep + back);
+  if (music)  parts.push(sep + '🎵 背景音乐 Prompt' + sep + music);
+  const blob = new Blob([parts.join('\n')], { type: 'text/plain;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${title}_封面封底背景音乐.txt`;
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 0);
 }
 
 function onSourceTextInput() {
@@ -3216,7 +3246,7 @@ function copyFullReport() {
   if (narration) out += `─── 旁白文案 ────────────────\n${narration}\n\n`;
   if (front) out += `─── 封面 Prompt ─────────────────────────\n${front}\n\n`;
   if (back) out += `─── 封底 Prompt ─────────────────────────\n${back}\n\n`;
-  if (music) out += `─── 主题曲 Prompt ───────────────────────\n${music}\n\n`;
+  if (music) out += `─── 背景音乐 Prompt ───────────────────────\n${music}\n\n`;
 
   navigator.clipboard.writeText(out).then(() => showToast('完整报告已复制 ✓'));
 }
@@ -3349,18 +3379,19 @@ const I18N = {
     nbmPastePh: '直接把 NotebookLM 产出的大纲贴在这里...',
     parsedOk: '已解析 {n} 页故事原文，旁白已生成 ✓',
     parsedEmpty: '未侦测到「故事原文」段落，请确认格式',
-    step4: '特别素材', p4Title: '✨ 特别素材',
-    p4Desc: '根据故事原文生成：封面封底剧照 Prompt · 主题曲 Prompt',
+    step4: '', p4Title: '',
+    p4Desc: '生成封面/封底与背景音乐',
     voiceToggle: '🎙️ 生成语音 + 字幕',
-    coverToggle: '🖼️ 封面 / 封底', musicToggle: '🎵 主题曲',
+    coverToggle: '🖼️ 封面 / 封底', musicToggle: '🎵 背景音乐',
     section2Num: '2', section2Title: '🎙️ 语音 · 字幕',
     section2Desc: '贴入大纲 → 一键转语音',
-    section3Num: '特别素材',
+    section3Num: '',
     coverAuthorLabel: '作者署名',
-    coverAuthorPh: '例：王瑋文',
+    coverAuthorPh: '',
     coverFrontTitle: '封面剧照 Prompt', coverBackTitle: '封底剧照 Prompt',
     backTitleLabel: '封底标题', backTitlePh: '例：智慧永流传',
-    musicTitle: '主题曲 Prompt',
+    musicTitle: '背景音乐 Prompt',
+    downloadSpecialsTxt: '⬇️ 下载 .txt（封面 + 封底 + 背景音乐）',
     narrTitle: '旁白文案', regen: '⚡ 重新生成', copyStudio: '📋 复制给 Google AI Studio',
     styleLabel: '风格：', narrStd: '📖 原文旁白', narrRich: '✨ 生动旁白',
     voiceFlow: '① 生成旁白 → ② 选声线一键转语音 → ③ 试听满意 → ④ 转字幕 → ⑤ 按幕切割打包',
@@ -3407,18 +3438,19 @@ const I18N = {
     nbmPastePh: 'Paste the full NotebookLM outline here...',
     parsedOk: 'Parsed {n} pages of story text — narration ready ✓',
     parsedEmpty: 'No "Original story text" sections detected; please check format',
-    step4: 'Specials', p4Title: '✨ Specials',
-    p4Desc: 'Generated from the story text: cover / back cover Prompt · theme song Prompt',
+    step4: '', p4Title: '',
+    p4Desc: 'Generate cover / back cover & background music',
     voiceToggle: '🎙️ Generate voice + subtitles',
-    coverToggle: '🖼️ Cover / Back cover', musicToggle: '🎵 Theme song',
+    coverToggle: '🖼️ Cover / Back cover', musicToggle: '🎵 Background music',
     section2Num: '2', section2Title: '🎙️ Voice · Subtitles',
     section2Desc: 'Paste outline → One-click TTS',
-    section3Num: 'Specials',
+    section3Num: '',
     coverAuthorLabel: 'Author',
-    coverAuthorPh: 'e.g. Wei Wen',
+    coverAuthorPh: '',
     coverFrontTitle: 'Cover still Prompt', coverBackTitle: 'Back cover still Prompt',
     backTitleLabel: 'Back title', backTitlePh: 'e.g. Wisdom endures',
-    musicTitle: 'Theme song Prompt',
+    musicTitle: 'Background music Prompt',
+    downloadSpecialsTxt: '⬇️ Download .txt (cover + back + background music)',
     narrTitle: 'Narration script', regen: '⚡ Regenerate', copyStudio: '📋 Copy for Google AI Studio',
     styleLabel: 'Style:', narrStd: '📖 Original text', narrRich: '✨ Enriched narration',
     voiceFlow: '① Generate narration → ② pick voice & TTS → ③ preview → ④ to SRT → ⑤ split & bundle',
