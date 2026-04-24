@@ -3661,10 +3661,10 @@ function parseNbmAndBuildNarration() {
     return;
   }
   // 填入旁白框：第X幕：原文
-  const lines = extracted.map((t, i) => `第${i+1}幕：${t}`);
+  const narrLines = extracted.map((t, i) => `第${i+1}幕：${t}`);
   const out = document.getElementById('narration-out');
   if (out) {
-    out.value = lines.join('\n');
+    out.value = narrLines.join('\n');
   }
   // 展开语音区以便使用
   const voice = document.getElementById('extra-voice');
