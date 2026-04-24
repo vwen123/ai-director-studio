@@ -2676,14 +2676,16 @@ async function handleAudioUpload(e) {
       parseInt(document.getElementById('g-num-scenes')?.value) ||
       (typeof scenes !== 'undefined' && scenes.length) || 5
     ));
-    const useText = document.getElementById('srt-use-text')?.checked;
+    // 只要旁白文案里有内容（无论是 TTS 生成还是自己上传的音档），
+    // 一律根据旁白的幕数来切割；勾选框仅作为显式关闭选项
+    const useText = (document.getElementById('srt-use-text')?.checked !== false);
     const narrRaw = document.getElementById('narration-out')?.value.trim() || '';
     let usedCorrection = false;
     let sceneCount = n;
     if (useText && narrRaw) {
+      // 优先按旁白里出现的「第X幕」数量作为切割数
       const sceneTexts = parseNarrationScenes(narrRaw, n);
       if (sceneTexts.length >= 2) {
-        // 切点数以旁白里的幕数为准（第1幕/第2幕.../第N幕）
         sceneCount = sceneTexts.length;
         chunks = alignChunksToText(chunks, sceneTexts, totalSec);
         usedCorrection = true;
@@ -2780,15 +2782,15 @@ function parseNarrationScenes(text, n) {
       buckets.push(ln);
     }
   }
-  // 若数量不等于 n，按原文均分字符
-  if (buckets.length !== n) {
-    const plain = text.replace(/第[一二三四五六七八九十百千0-9]+[幕页][：:]/g, '').replace(/\s+/g, '');
-    const per = Math.ceil(plain.length / n);
-    const out = [];
-    for (let i = 0; i < n; i++) out.push(plain.slice(i*per, (i+1)*per));
-    return out.filter(Boolean);
-  }
-  return buckets;
+  // 旁白里已有「第X幕」标记就以其为准（无论是不是 n 幕）
+  const marked = buckets.filter(Boolean);
+  if (marked.length >= 2) return marked;
+  // 否则退回：按原文均分为 n 段
+  const plain = text.replace(/第[一二三四五六七八九十百千0-9]+[幕页][：:]/g, '').replace(/\s+/g, '');
+  const per = Math.ceil(plain.length / n);
+  const out = [];
+  for (let i = 0; i < n; i++) out.push(plain.slice(i*per, (i+1)*per));
+  return out.filter(Boolean);
 }
 
 // 用旁白原文替换 Whisper chunk 文字：按 chunk 时长比例分配字符
