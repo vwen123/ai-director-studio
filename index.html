@@ -1992,6 +1992,33 @@ function _storyEnding() {
   return last.replace(/^\s*第[一二三四五六七八九十百千0-9]+[幕页][：:]\s*/, '').trim();
 }
 
+// 根据故事原文推断情绪关键词
+function _inferStoryMood(text) {
+  if (!text) return '';
+  const tags = [];
+  if (/悲|哭|泪|失去|离别|思念|孤单|孤独|逝|难过|伤心/.test(text)) tags.push('melancholic, tender and nostalgic');
+  if (/笑|欢|乐|开心|快乐|高兴|庆祝|热闹/.test(text)) tags.push('joyful and playful');
+  if (/怕|惊|吓|危险|黑暗|紧张|追|逃|战斗|险/.test(text)) tags.push('tense and suspenseful');
+  if (/爱|温暖|温馨|抱|陪伴|家人|朋友|守护/.test(text)) tags.push('warm and heartfelt');
+  if (/神秘|魔法|奇幻|秘密|古老|谜/.test(text)) tags.push('mysterious and magical');
+  if (/冒险|旅程|出发|探险|远方|勇敢/.test(text)) tags.push('adventurous and hopeful');
+  if (/希望|梦想|坚持|努力|成长|未来/.test(text)) tags.push('inspiring and uplifting');
+  if (/雨|雪|风|海|山|林|夜|晨|夕阳/.test(text)) tags.push('natural and atmospheric');
+  return tags.slice(0, 3).join(', ');
+}
+
+// 从故事原文提取关键意象（人、物、场景名词），提供给视觉 prompt
+function _storyKeywords(text, max = 8) {
+  if (!text) return '';
+  const stop = /^(的|了|和|与|在|是|他|她|它|我|你|们|这|那|一|有|也|就|都|不|要|会|着|过|把|被|给)$/;
+  const bag = new Map();
+  (text.match(/[\u4e00-\u9fa5]{2,4}/g) || []).forEach(w => {
+    if (stop.test(w)) return;
+    bag.set(w, (bag.get(w) || 0) + 1);
+  });
+  return [...bag.entries()].sort((a,b) => b[1]-a[1]).slice(0, max).map(e => e[0]).join('、');
+}
+
 function generateCover(which) {
   const title = document.getElementById('g-title').value || '无题';
   const author = (document.getElementById('cover-author')?.value || '').trim();
@@ -2000,27 +2027,35 @@ function generateCover(which) {
   const source = _storySource();
   const opening = _storyOpening();
   const ending = _storyEnding();
+  const styleCn = (Array.isArray(STYLES) ? STYLES.find(s => s[1] === selectedStyle)?.[0] : '') || '';
+  const styleTag = styleCn ? `视觉风格：${styleCn}（${selectedStyle}）` : selectedStyle;
+  const keywords = _storyKeywords(source);
+  const moodTag = _inferStoryMood(source);
 
   if (which === 'front') {
     const parts = [
-      selectedStyle,
+      styleTag,
       'movie poster cinematic still illustrating the STORY opening',
       opening ? `opening scene from the story: ${opening}` : (source ? `story: ${source.slice(0, 200)}` : ''),
+      keywords ? `key story imagery: ${keywords}` : '',
+      moodTag ? `mood: ${moodTag}` : '',
       `title "${title}" displayed at top-left in elegant typography`,
       author ? `"作者：${author}" displayed at bottom-right in small clean serif text` : '',
       tail,
-      '16:9, dramatic composition, key art quality, faithful to the original story content',
+      '16:9, dramatic composition, key art quality, faithful to the original story content and visual style',
     ].filter(Boolean).join(', ');
     document.getElementById('cover-front').textContent = parts;
   } else {
     const parts = [
-      selectedStyle,
+      styleTag,
       'closing scene cinematic still, epilogue feel, illustrating the STORY ending',
       ending ? `ending scene from the story: ${ending}` : (source ? `story: ${source.slice(-200)}` : ''),
+      keywords ? `key story imagery: ${keywords}` : '',
+      moodTag ? `mood: ${moodTag}` : '',
       `title "${backTitle}" displayed at top-center in elegant typography`,
       author ? `"作者：${author}" displayed at bottom-right in small clean serif text` : '',
       tail,
-      '16:9, warm resolution mood, faithful to the original story content',
+      '16:9, warm resolution mood, faithful to the original story content and visual style',
     ].filter(Boolean).join(', ');
     document.getElementById('cover-back').textContent = parts;
   }
@@ -2028,9 +2063,23 @@ function generateCover(which) {
 }
 function generateMusic() {
   const styleCn = (Array.isArray(STYLES) ? STYLES.find(s => s[1] === selectedStyle)?.[0] : '') || '';
-  const mood = inferMoodFromStyle(styleCn);
-  // 30 秒背景音乐：只描述氛围与风格，不写入故事剧情
-  const p = `30-second instrumental background music, ${mood}, soft cinematic ambience, gentle emotional melody, no vocals, no lyrics, looping-friendly, suitable as the opening theme of a short animated story`;
+  const styleMood = inferMoodFromStyle(styleCn);
+  const source = _storySource();
+  const storyMood = _inferStoryMood(source);
+  const keywords = _storyKeywords(source, 5);
+  // 30 秒背景音乐：根据视觉风格 + 故事原文情绪共同调整 prompt
+  const moodLine = storyMood
+    ? `overall mood: ${storyMood} (shaped by the story content)`
+    : `overall mood: ${styleMood}`;
+  const themeLine = keywords ? `thematic imagery inspired by: ${keywords}` : '';
+  const p = [
+    '30-second instrumental background music',
+    `style base: ${styleMood}`,
+    moodLine,
+    themeLine,
+    'soft cinematic ambience, melody that follows the emotional arc of the story',
+    'no vocals, no lyrics, looping-friendly, suitable as the background score of a short animated story',
+  ].filter(Boolean).join(', ');
   document.getElementById('music-out').textContent = p;
   save();
 }
