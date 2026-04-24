@@ -390,7 +390,7 @@
         <option value="zh">🇨🇳 中文</option>
         <option value="en">🇬🇧 English</option>
       </select>
-      <button class="btn btn-danger btn-sm" onclick="if(confirm(T('confirmReset'))){localStorage.removeItem(KEY);location.reload();}" data-i18n="reset">🗑️ 清空重来</button>
+      <button class="btn btn-danger btn-sm" onclick="resetAll()" data-i18n="reset">🗑️ 清空重来</button>
     </div>
   </div>
 </div>
@@ -3139,8 +3139,45 @@ function computeSplitPoints(totalSec, n, chunks) {
   return [...new Set(points.map(x => +x.toFixed(3)))].sort((a,b)=>a-b);
 }
 
+function resetAll() {
+  if (!confirm(T('confirmReset'))) return;
+  try { localStorage.removeItem(KEY); } catch(e){}
+  // 清空所有输入框 / textarea
+  document.querySelectorAll('input[type="text"], input[type="number"], input:not([type]), textarea').forEach(el => {
+    if (el.id === 'gemini-api-key') return; // 保留 API Key
+    el.value = '';
+  });
+  // 清空所有 prompt-out / 结果 div
+  ['cover-front','cover-back','music-out','nbm-out','narration-out','nbm-paste','nbm-parse-status','srt-status'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if ('value' in el && el.tagName === 'TEXTAREA') el.value = '';
+    else el.textContent = '';
+  });
+  // 折叠封面/音乐/下载区
+  ['extra-cover','extra-music','specials-dl-wrap'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.style.display = 'none';
+  });
+  // 重置音频/字幕状态
+  try {
+    lastAudio = null; lastChunks = []; lastTTSBlob = null; lastSRT = '';
+    ['split-audio-btn','srt-dl-btn','srt-copy-btn','tts-to-srt-btn'].forEach(id => {
+      const el = document.getElementById(id); if (el) el.style.display = 'none';
+    });
+    const prev = document.getElementById('srt-preview'); if (prev) prev.innerHTML = '';
+    const ttsA = document.getElementById('tts-audio'); if (ttsA) { ttsA.src = ''; ttsA.style.display = 'none'; }
+  } catch(e){}
+  // 重载以完全重建状态
+  setTimeout(() => location.reload(), 50);
+}
+
 async function splitAudioByScenes() {
-  if (!lastAudio) { showToast('请先上传音频'); return; }
+  if (!lastAudio) {
+    const msg = '⚠️ 需要先上传音频并点「📝 将这段语音转字幕」完成转录，才能按幕切割';
+    const s = document.getElementById('srt-status'); if (s) s.innerHTML = msg;
+    showToast(msg);
+    return;
+  }
   if (typeof JSZip === 'undefined') { showToast('JSZip 未加载，请检查网络'); return; }
   syncPanelEdits();  // 打包前先把面板编辑同步回来
   maybeRealignFromNarration();  // 若旁白改过，自动重套
