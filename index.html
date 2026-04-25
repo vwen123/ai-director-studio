@@ -2859,8 +2859,8 @@ function renderSrtPreviewGrouped(chunks, n) {
         <div style="min-width:22px;font-size:0.7rem;color:var(--muted);padding-top:8px;text-align:center">#${i+1}</div>
         <textarea rows="1" oninput="updateChunkText(${i}, this.value); autoGrow(this)" placeholder="字幕内容..." style="flex:1;font-size:0.88rem;line-height:1.5;border:1px solid var(--phase-border);border-radius:10px;padding:10px 12px;background:var(--phase-inner);color:var(--fg);resize:none;min-height:64px">${escapeHtml((c.text || '').trim())}</textarea>
         <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;justify-content:space-between">
-          <input type="text" value="${secToSRTShort(a)}" title="开始时间 h:mm:ss.ms" onchange="updateChunkTime(${i}, 'start', this.value)" style="${timeStyle}">
-          <input type="text" value="${secToSRTShort(end)}" title="结束时间 h:mm:ss.ms" onchange="updateChunkTime(${i}, 'end', this.value)" style="${timeStyle}">
+          <input type="text" value="${secToSRTShort(a)}" title="开始时间 h:mm:ss.ms" oninput="updateChunkTime(${i}, 'start', this.value, true)" onchange="updateChunkTime(${i}, 'start', this.value)" style="${timeStyle}">
+          <input type="text" value="${secToSRTShort(end)}" title="结束时间 h:mm:ss.ms" oninput="updateChunkTime(${i}, 'end', this.value, true)" onchange="updateChunkTime(${i}, 'end', this.value)" style="${timeStyle}">
         </div>
         <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;justify-content:center">
           <button type="button" title="下方加一条" onclick="addSrtRow(${i})" style="padding:2px 8px;border-radius:6px;border:1px solid #10b981;background:transparent;color:#10b981;font-size:0.78rem;cursor:pointer;font-weight:600">➕</button>
@@ -2988,10 +2988,11 @@ function parseTimeInput(str) {
   else s = +parts[0];
   return isNaN(s) ? null : Math.max(0, s);
 }
-function updateChunkTime(i, which, val) {
+function updateChunkTime(i, which, val, soft) {
   if (!lastChunks[i]) return;
   const sec = parseTimeInput(val);
-  if (sec === null) { renderSrtPreviewGrouped(lastChunks); return; }
+  // soft = oninput 时半成品输入暂不重渲染 / 不报错，只在解析成功时同步内存
+  if (sec === null) { if (!soft) renderSrtPreviewGrouped(lastChunks); return; }
   const [a, b] = lastChunks[i].timestamp || [0, 0];
   if (which === 'start') lastChunks[i].timestamp = [sec, Math.max(sec, b || sec + 1)];
   else lastChunks[i].timestamp = [Math.min(a, sec), sec];
@@ -3061,11 +3062,23 @@ function realignTextFromNarration() {
 
 // 同步面板上所有 textarea 的最新值回 lastChunks
 function syncPanelEdits() {
-  document.querySelectorAll('#srt-preview textarea').forEach(ta => {
-    const row = ta.closest('.srt-row');
+  // 把面板上未失焦提交的文字 + 时间编辑全部同步回 lastChunks
+  document.querySelectorAll('#srt-preview .srt-row').forEach(row => {
     const idx = parseInt(row?.dataset.idx);
-    if (!isNaN(idx) && lastChunks[idx]) lastChunks[idx].text = ta.value;
+    if (isNaN(idx) || !lastChunks[idx]) return;
+    const ta = row.querySelector('textarea');
+    if (ta) lastChunks[idx].text = ta.value;
+    const timeInputs = row.querySelectorAll('input[type="text"]');
+    if (timeInputs.length >= 2) {
+      const a = parseTimeInput(timeInputs[0].value);
+      const b = parseTimeInput(timeInputs[1].value);
+      if (a !== null && b !== null) {
+        lastChunks[idx].timestamp = [Math.min(a, b), Math.max(a, b)];
+      }
+    }
   });
+  // 立即重算 SRT 字串
+  if (lastChunks && lastChunks.length) lastSRT = chunksToSRT(lastChunks);
 }
 
 function downloadGeneratedSRT() {
