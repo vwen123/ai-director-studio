@@ -2796,8 +2796,8 @@ function parseNarrationScenes(text, n) {
 // 用旁白原文替换 Whisper chunk 文字：按 chunk 时长比例分配字符
 function alignChunksToText(chunks, sceneTexts, totalSec) {
   if (!chunks.length || !sceneTexts.length) return chunks;
-  // 先算每个 scene 的时间范围（按 Whisper chunks 切）
-  const points = computeSplitPoints(totalSec, sceneTexts.length, chunks);
+  // 按各幕字数比例算时间切点（长幕给更多秒数），再吸附到最近的语音停顿点
+  const points = computeSplitPointsByText(totalSec, sceneTexts, chunks);
   const out = chunks.map(c => ({ ...c }));
   for (let s = 0; s < sceneTexts.length; s++) {
     const t0 = points[s], t1 = points[s+1];
@@ -3116,6 +3116,43 @@ function float32ToWav(samples, sampleRate) {
 }
 
 // 计算 N 幕的切割点（秒）— 优先使用 Whisper chunks 的语义边界，否则均分
+// 按各幕字数比例算时间切点（更贴合真实朗读节奏），再吸附到最近的语音停顿
+function computeSplitPointsByText(totalSec, sceneTexts, chunks) {
+  const n = sceneTexts.length;
+  if (n < 2) return [0, totalSec];
+  const lens = sceneTexts.map(t => Math.max(1, (t || '').replace(/\s+/g, '').length));
+  const total = lens.reduce((a, b) => a + b, 0);
+  // 字数比例转成累计时间点（不含 0 和 total）
+  const ideal = [];
+  let acc = 0;
+  for (let i = 0; i < n - 1; i++) {
+    acc += lens[i];
+    ideal.push(totalSec * acc / total);
+  }
+  const points = [0];
+  if (chunks && chunks.length) {
+    const ends = chunks.map(c => (c.timestamp && c.timestamp[1]) || 0).filter(x => x > 0);
+    const avgScene = totalSec / n;
+    for (const t of ideal) {
+      let best = t, bestDiff = Infinity;
+      for (const e of ends) {
+        const d = Math.abs(e - t);
+        // 容许吸附窗口：比例切点附近 ±35% 的平均幕长
+        if (d < bestDiff && d < avgScene * 0.35) { bestDiff = d; best = e; }
+      }
+      points.push(best);
+    }
+  } else {
+    points.push(...ideal);
+  }
+  points.push(totalSec);
+  // 强制单调递增，去除可能因吸附产生的逆序
+  for (let i = 1; i < points.length; i++) {
+    if (points[i] <= points[i-1]) points[i] = points[i-1] + 0.05;
+  }
+  return [...new Set(points.map(x => +x.toFixed(3)))].sort((a,b)=>a-b);
+}
+
 function computeSplitPoints(totalSec, n, chunks) {
   if (n < 2) return [0, totalSec];
   // 理想均分点
