@@ -1,77 +1,87 @@
-# AI Director Studio · 开发记录
+# AI 制作动画视频 Studio · 开发记录
 
-> 单文件 HTML 工作坊工具：给华文老师用 NotebookLM + Gemini + Flow + Kling/Veo 做 AI 故事影片。
-> 线上地址：https://vwen123.github.io/ai-director-studio.html
-> 工作坊日期：2026-04-24
+> NotebookLM 工作流驱动的动画视频制作工具：标题 → NBM Prompt → 解析大纲 → 旁白 / 语音 / 字幕 → 封面 / 封底 / 背景音乐
+> 单文件 HTML（vanilla JS），无后端，所有处理在浏览器本地完成。
+> 仓库：`vwen123/ai-director-studio`（main 分支）
+> 线上：`https://vwen123.github.io/ai-director-studio/`
 
 ---
 
 ## 📦 架构
 
-- **单文件**：`ai-director-studio.html`（HTML + CSS + JS 全在一个文件里，方便学员离线使用）
-- **部署**：`/Users/weiwen/Downloads/ai_director_studio.html`（主编辑文件）→ `cp` 到 `/Users/weiwen/Projects/ai-director-studio/` → `git push` → GitHub Pages 自动更新
-- **仓库**：`vwen123/vwen123.github.io`（main 分支）
-- **持久化**：localStorage key `ai_director_v1`；API key 存 `gemini_key`
-
-### 技术栈
-| 用途 | 工具 |
+| 档案 | 用途 |
 |---|---|
-| 文本生成 | Gemini 2.5 Flash |
-| TTS 配音 | Gemini 2.5 Flash Preview TTS（30 种声线）|
-| 语音转字幕 | Whisper base（transformers.js，浏览器端运行）|
-| 打包下载 | JSZip |
-| 音频编码 | PCM16 @ 24kHz → WAV Blob |
+| `index.html` | 单文件应用（HTML + CSS + JS 全部在内）|
+
+- **存储**：localStorage（key `KEY`），API Key 存 `gemini_key`，UI 语言存 `uiLang`
+- **TTS**：Gemini API（`gemini-2.5-flash-preview-tts`）
+- **语音转字幕**：transformers.js + Whisper-base（浏览器本地推理，首次约 150MB）
+- **打包**：JSZip（CDN）
+- **GitHub Pages**：`/Users/weiwen/ai-director-studio/index.html` push 到 main
 
 ---
 
-## 🧭 五阶段流程（Phase Cards）
+## 🧭 核心工作流（NotebookLM 模式 · 唯一保留路径）
 
-用户整体工作流分 5 块，版面为深色底 + 5 个独立浅色卡片（phase-c1 ~ c4 + nb + cx）：
+### 区块 1 · 项目标题 + 视觉风格 + NBM Prompt
+1. 输入标题 + 选择视觉风格（中文标签 + 英文 prompt 关键字）
+2. 自动生成 NotebookLM Prompt：
+   ```
+   请根据《<标题>》，给我 N 页简报插图建议大纲，每一页都是原文，用说故事的方式呈现，列出来。整体视觉风格：<风格中文>
+   ```
+3. 一键复制 → 贴到 NotebookLM → 让 NBM 根据用户上传的课文产出大纲
 
-1. **Phase 1 · NotebookLM 简报大纲**
-   起点：输入《标题》《主题》《幕数》《画风》→ 一键生成 NBM prompt → 用户复制到 NotebookLM 得到原文大纲
-2. **Phase 2 · 场景拆解**
-   把大纲变成 N 场的 start/end 图像 prompt（给 Flow / Nano Banana 画分镜）
-3. **Phase 3 · 旁白 + 配音**
-   旁白文本（原文 / 生动二选一）→ Gemini TTS 一键转语音
-4. **Phase 4 · 字幕对齐**
-   Whisper 转 SRT → 用旁白文本校正 → 可编辑面板（文字 / 时间 / 切点）
-5. **Phase 5 · 打包**
-   按幕切割 WAV + 完整 SRT 一起打 ZIP
+### 区块 2 · 贴入 NBM 回传大纲 → 旁白 / 语音 / 字幕
+1. 贴入 NBM 回传内容（含「故事原文」段落）
+2. `parseNbmAndBuildNarration()` 抽取每页原文 → 自动生成 `第1幕：... \n 第2幕：...` 旁白
+3. 选声线 + 语气 → Gemini TTS → WAV
+4. 「📝 将这段语音转字幕」 → Whisper 转录 + 旁白校正 → 可编辑字幕面板
+5. ⬇️ 下载 SRT / ✂️ 按幕切割 + 打包 WAV ZIP
+
+### 区块 3 · 特别素材
+- 🖼️ 封面 / 封底剧照 Prompt（依视觉风格 + 故事原文 + 关键意象 + 情绪推断）
+- 🎵 背景音乐 Prompt（依视觉风格 + 故事情绪 + 故事意象）
+- ⬇️ 下载 .txt（封面 + 封底 + 背景音乐）—— 一份 txt 带作者署名
 
 ---
 
-## 🔑 核心技术决策
+## 🔑 关键技术决策
 
-### ① 顶部字段全链路同步
-幕数、画风、标题、主题四个字段改动 → `syncAllFromCore()` 触发：重建 NBM prompt + 每个场景 prompt + 旁白 + 封面。避免用户改了幕数底下却没跟着变。
+### ① 从全功能 → NBM-only 简化
+最初支持「仅标题 / 贴课文 / NotebookLM」三种模式，后来收敛到只剩 NotebookLM。`phase-chars`、`phase-scenes`、`export-area` 这些区块直接 `style="display:none"` 硬隐藏在 HTML 上，避免任何 JS 早期错误把它们闪出来。
 
-### ② 旁白按幕对齐 Whisper 切片
-- `parseNarrationScenes(text, n)`：按「第N幕」切开旁白原文
-- `alignChunksToText(chunks, sceneTexts, totalSec)`：按时长比例把旁白原文分配进 Whisper 切片，同时打上 `sceneIdx` 标记
-- 好处：Whisper 识别错的字，用原文校正后自动归位
+### ② 单文件、无构建
+所有 i18n 字典、CSS、JS 都内联到一个 HTML。`data-i18n` 翻译文字内容，`data-i18n-ph` 翻译 placeholder，`setUiLang(lang)` 在 init 和切换语言时跑一遍替换。
 
-### ③ 切点算法 · 两幕之间的静音中点
-不是用 `first-chunk.start`，而是用 `(prev_scene_last.end + curr_scene_first.start) / 2`，切 WAV 时刚好切在静音，不会切到说话中间。
+### ③ 「原文」解析容错
+NotebookLM 回传格式不固定（有时 `**原文：** xxx`、有时 `**原文**` 换行下面才是内容、有时 `### 原文 "xxx"`）。`parseNbmAndBuildNarration()` 改成逐行扫描：
+- 任何含「原文」二字的短标题行（≤15 字内）都识别为段落起点
+- 同行有正文 → 取；同行只有标题 → 读下面几行直到遇到空行 / 下一个小标题
+- 自动剥除 markdown 符号（`**` `#` `>`）和首尾引号（中英文都支持）
 
-### ④ 字幕自动分行（标点优先 + 18 字兜底）
-```
-for ch of text:
-  buf += ch
-  if 标点 且 长度 >= 9：断行
-  else if 长度 >= 18：断行
-```
+### ④ 音频按幕切割（核心算法）
+**问题**：均分时间 → 长短不一的幕错位严重
+**解法**：`computeSplitPointsByText(totalSec, sceneTexts, chunks)`
+1. 按各幕**字数比例**算理想时间切点
+2. 每个理想点**吸附到最近的 Whisper chunk 结束时间**（容许 ±35% 平均幕长）—— 利用语音停顿避免切断字
+3. 强制单调递增防止吸附后逆序
 
-### ⑤ Gemini 429 节流 + 重试
-```js
-MIN_GAP_MS = { 'gemini-2.5-flash-preview-tts': 6500, 'gemini-2.5-flash': 3500 }
-// 429 时解析 "retry in Xs" 自动等待重试 2 次
-```
+适用范围：TTS 自生 WAV、用户上传 mp3/wav（包含 Google AI Studio 生成的音档）—— 同一支 `handleAudioUpload` 处理。
 
-### ⑥ 三层同步保证下载一致
-`syncPanelEdits()` → `maybeRealignFromNarration()` → 导出 SRT / WAV
-- 面板改字 / 改时间 / 加减条 / 调切点 → 立即写回 `lastChunks`
-- 旁白文本变了 → `__lastAlignedNarration` 快照检测 → 重新按比例分配文字（保留切点和时间）
+### ⑤ 字幕面板即时同步
+- 文字编辑（textarea oninput）→ 即时回写 `lastChunks[i].text` + `lastSRT`
+- 时间编辑（input oninput soft + onchange hard）→ 即时回写 `lastChunks[i].timestamp`
+- ✂ 切点 / ➕ 插入 / ➖ 删除 → 都直接改 `lastChunks` 并 re-render
+- 下载 SRT 和打包 WAV 入口都先 `syncPanelEdits()` —— 即使没失焦也会捕捉到最新值
+
+### ⑥ 封面 / 背景音乐 prompt 的故事感知
+- `_storyKeywords(text)` —— 用 2-4 字中文 n-gram 频次提取关键意象（剔除常用虚词）
+- `_inferStoryMood(text)` —— 关键词分类（悲/乐/紧张/温馨/神秘/冒险/励志/自然氛围）
+- 封面：视觉风格 + opening/ending + 关键意象 + 情绪 + 作者署名（右下角）
+- 背景音乐：视觉风格基底 mood + 故事情绪 mood（覆盖式调整）+ 故事关键意象
+
+### ⑦ resetAll 真清空
+`localStorage.removeItem(KEY); location.reload()` 不够（浏览器 form autofill 会留字）。`resetAll()` 显式清所有 input/textarea/prompt-out/隐藏面板/状态变量，再 reload。保留 API Key 和语言设置。
 
 ---
 
@@ -79,104 +89,112 @@ MIN_GAP_MS = { 'gemini-2.5-flash-preview-tts': 6500, 'gemini-2.5-flash': 3500 }
 
 | 函数 | 作用 |
 |---|---|
-| `syncAllFromCore()` | 顶部字段改动时重建所有下游 |
-| `generateNbmPrompt()` | 产生 NotebookLM 用的说故事大纲 prompt |
-| `buildScenePrompt(s, 'start'\|'end')` | 单个场景的图像 prompt |
-| `generateNarration()` | 生成旁白（原文 / 生动二选一）|
-| `callGemini(model, body)` | 统一 API 调用，带节流 + 429 重试 |
-| `testVoice()` | 试听 5 秒声线样本（带缓存）|
-| `generateVoice()` | 一键把旁白全文转 WAV |
-| `transcribeWhisper()` | 浏览器端 Whisper 转字幕 |
-| `parseNarrationScenes(text, n)` | 按「第N幕」切旁白 |
-| `alignChunksToText(chunks, sceneTexts, totalSec)` | 旁白文字校正 Whisper 切片 |
-| `renderSrtPreviewGrouped(chunks, n)` | 可编辑字幕面板（CapCut 风格）|
-| `updateChunkText / updateChunkTime` | 面板改字 / 改时间即时同步 |
-| `addSrtRow(i) / removeSrtRow(i)` | 面板增删条目 + 时间顺延 |
-| `toggleCutPoint(i)` | 面板切点开关 |
-| `splitLongText(text, maxLen=18)` | 标点优先的字幕分行 |
-| `splitAudioByScenes()` | 按幕切 WAV + 完整 SRT 打 ZIP |
-| `secToSRT / secToSRTShort / parseTimeInput` | 时间格式工具 |
+| `generateNbmPrompt()` | 根据标题 + 视觉风格生成 NBM Prompt |
+| `parseNbmAndBuildNarration()` | 从 NBM 大纲抽「原文」 → 旁白框 |
+| `_storySource() / _storyOpening() / _storyEnding()` | 旁白主干 / 首幕 / 末幕 |
+| `_storyKeywords(text, max)` | 故事关键意象（n-gram 频次）|
+| `_inferStoryMood(text)` | 故事情绪标签 |
+| `generateCover('front'/'back')` | 封面/封底 prompt 输出 |
+| `generateMusic()` | 背景音乐 prompt 输出 |
+| `downloadSpecialsTxt()` | 把封面 + 封底 + 背景音乐打包成 .txt |
+| `parseNarrationScenes(text, n)` | 旁白 → N 幕字符串数组（实际幕数优先于 n）|
+| `computeSplitPointsByText(totalSec, sceneTexts, chunks)` | 按字数比例算时间切点 + 吸附停顿 |
+| `alignChunksToText(chunks, sceneTexts, totalSec)` | 把旁白文字按 chunk 时长比例填回 |
+| `handleAudioUpload(e)` | 上传音档 → Whisper 转录 → 自动按旁白幕数切割 |
+| `ttsAudioToSRT()` | 把生成的 TTS WAV 当作上传走同一流程 |
+| `splitAudioByScenes()` | 用 sceneIdx 切 WAV + JSZip 打包 |
+| `syncPanelEdits()` | 把面板上未失焦提交的文字 + 时间扫回 lastChunks |
+| `updateChunkText / updateChunkTime / toggleCutPoint / addSrtRow / removeSrtRow` | 字幕面板编辑动作 |
+| `resetAll()` | 全清空 + reload |
+| `setUiLang(lang)` | 切换 zh/en + 重新替换所有 data-i18n |
+| `onApiKeyChange(v)` | API Key 输入即时启用判断（≥20 字符）|
 
 ---
 
 ## 📝 迭代日志
 
-### 2026-04-19 · 第一阶段（整体联动）
-- [x] 顶部 4 个字段 → 下游 prompt / 旁白 / 封面全链路同步
-- [x] 旁白选项从「篇幅长短」改为「原文 / 生动」
-- [x] NotebookLM prompt 简化成说故事大纲格式
-- [x] 生成 WAV 时去掉「第N幕 / 第N页」前缀
-- [x] SRT 面板支持按 1/2/3 分组 + 用旁白校正
+### 第一阶段 · 全功能版本（已废弃）
+- [x] 三模式：仅标题 / 贴课文 / NotebookLM
+- [x] 角色锚定 + 分镜脚本 + 五维视频参数 + 首尾帧
+- [x] 故事草稿确认流程
 
-### 2026-04-19 · 第二阶段（精简 + UX）
-- [x] AI 功能瘦身，只留 Gemini TTS 一键转语音
-- [x] 移除浏览器 TTS，改链到 Google AI Studio
-- [x] 选 NotebookLM 模式时自动展开语音面板
-- [x] 修 Phase 3/4 叠进 Phase 2 的版面 bug（HTML 标签缺 `>`）
-- [x] 简化标签文字（去掉括号注释）
-- [x] 一键模式自动填「语气描述」（关键词匹配）
+### 第二阶段 · 收敛到 NotebookLM-only
+- [x] 移除「仅标题」「贴课文」按钮
+- [x] 隐藏 phase-chars / phase-scenes / export-area
+- [x] 标题改为「AI 制作动画视频 Studio」
+- [x] 移除作者署名 / 故事主题 / 镜头规格 / 光影氛围 / 渲染质感等输入
+- [x] 移除视觉风格搜索框、load demo
 
-### 2026-04-19 · 第三阶段（字幕面板升级）
-- [x] 字幕面板全面可编辑（文字 + 切点）
-- [x] 切点跟旁白幕数同步（7 幕 → 7 段）
-- [x] WAV 切点改用「两幕之间静音中点」
-- [x] 字幕按标点 / 18 字自动分行
-- [x] 面板改动实时同步到下载 SRT / 打包 WAV
-- [x] 加 ➕ ➖ 按钮：插入 / 删除条目自动分配时间
-- [x] 旁白文本改了 → 自动按比例重新分配到切片（保留切点和时间戳）
+### 第三阶段 · 双语 i18n
+- [x] 右上角 zh/en 切换
+- [x] 切换语言时 document.title + 所有 data-i18n + placeholder + NBM Prompt 全部同步
+- [x] 语气描述加 6 个预设（温暖亲切 / 热血活力 / 神秘探险 / 专业知性 / 怀念感性 / 俏皮捣蛋），切换语言时跟着翻译
 
-### 2026-04-19 · 第四阶段（打包决策反复）
-- [x] ZIP 初版含 N 段 WAV + N 段 SRT + 完整 SRT
-- [x] 改为只留 WAV + 完整 SRT（用户反馈）
-- [x] 一度加回每段 SRT（用户改主意）
-- [x] 最终版：只留 WAV + 完整 SRT（完整 SRT 已自动分行，不需要再分段）
+### 第四阶段 · 三段式布局
+- [x] 区块 1：标题 + 视觉风格 + NBM Prompt（合并）
+- [x] 区块 2：贴入大纲 + 旁白 + 语音 + 字幕（语音区被 mountVoiceIntoNbm IIFE 移入）
+- [x] 区块 3：✨ 特别素材（封面 / 封底 / 背景音乐 + 下载 .txt）
+- [x] 把「主题曲」全部改为「背景音乐」
 
-### 2026-04-19 · 第五阶段（CapCut 风格字幕面板 + 声线性别）
-- [x] 字幕面板参照 CapCut 重新设计：
-  - 顶部「＋ 新增字幕」胶囊按钮
-  - 左：大字幕输入框
-  - 中：上下两个独立时间输入框（开始 / 结束，格式 `h:mm:ss.ss`）
-  - 右：竖排 ➕ ➖ ✂ 按钮
-  - 时间输入支持 `h:mm:ss.ms` / `mm:ss` / 纯秒数
-- [x] 修正声线性别错标（对照 Google 官方文档）：
-  - `Achird` · 友善亲切：女 → **男**
-  - `Gacrux` · 成熟智者：男 → **女（长者 / 奶奶）**
+### 第五阶段 · 故事感知 prompt
+- [x] 封面/封底：视觉风格 + 故事原文（开场/结尾）+ 关键意象 + 情绪
+- [x] 背景音乐：视觉风格 mood + 故事情绪 mood + 故事意象（30 秒 BGM，不写入完整剧情）
+- [x] 作者署名「输入名字」placeholder，封面右下角显示
+
+### 第六阶段 · 「原文」解析鲁棒
+- [x] 容错多种 markdown 格式
+- [x] 同行 / 跨行内容都能抓
+- [x] 剥除引号和强调符号
+
+### 第七阶段 · 字幕面板即时同步
+- [x] 上传音档自动按旁白幕数切割（不需勾选）
+- [x] 旁白幕数优先于 g-num-scenes（旁白有几幕就切几段）
+- [x] 字数比例算切点 + 吸附停顿点
+- [x] 文字 / 时间编辑即时回写到 SRT 和 WAV 切点
+
+### 第八阶段 · 全清空 + 错误修复
+- [x] resetAll 显式清所有字段（保留 API Key + 语言）
+- [x] 修一个 `Identifier 'lines' has already been declared` 把整支 JS 击穿的 bug
+- [x] 部署到 GitHub Pages（独立仓库）
 
 ---
 
 ## 🚀 部署流程
 
+源文件在 `/Users/weiwen/Downloads/ai_director_studio.html`，每次改动后同步到 `~/ai-director-studio/index.html` 推上 GitHub Pages：
+
 ```bash
-# 1. 编辑主文件
-edit /Users/weiwen/Downloads/ai_director_studio.html
-
-# 2. 同步到仓库工作副本
-cp /Users/weiwen/Downloads/ai_director_studio.html \
-   /Users/weiwen/Projects/ai-director-studio/ai-director-studio.html
-
-# 3. 提交推送（1-2 分钟后 GitHub Pages 生效）
-cd /Users/weiwen/Projects/ai-director-studio
-git add -A
+cp /Users/weiwen/Downloads/ai_director_studio.html ~/ai-director-studio/index.html
+cd ~/ai-director-studio
+git add index.html
 git commit -m "描述改动"
-git push
+git push origin main
+# Pages 1-2 分钟后生效
 ```
 
-线上地址：https://vwen123.github.io/ai-director-studio.html
+每次 commit 推送前用 node 检查 JS 语法（避免再次出现整支击穿的 bug）：
+
+```bash
+node -e "
+const fs = require('fs');
+const html = fs.readFileSync('/Users/weiwen/Downloads/ai_director_studio.html','utf8');
+const m = html.match(/<script(?![^>]*src)[^>]*>([\s\S]*?)<\/script>/g) || [];
+m.forEach((s,i) => {
+  const code = s.replace(/^<script[^>]*>/,'').replace(/<\/script>$/,'');
+  try { new Function(code); console.log('OK'); } catch(e) { console.log('error:', e.message); }
+});
+"
+```
 
 ---
 
 ## ⚠️ 注意事项
 
-1. **Gemini 免费层额度**：TTS 每天 10 次、Flash 每天 20 次。工作坊当天如果集体触发，建议学员各自用自己的 API key（面板右上角有输入框，存本地 localStorage）。
-2. **Whisper 首次加载**：约 70MB 模型文件，首次打开要等 30 秒~1 分钟，之后走浏览器缓存。
-3. **单文件限制**：不能用 npm 包、不能拆模块，所有依赖走 CDN（transformers.js / JSZip）。
-4. **HTML 结构警惕**：改标签时留意 `<div ...></div>` 的闭合；曾经因为 `<div id="x"</div>` 少了 `>` 导致 phase 3/4 叠进 phase 2。
-
----
-
-## 🎯 下一步（工作坊当天可能会补）
-
-- [ ] 如果 API 额度不够：加「本地离线模式」开关
-- [ ] 批量导入 NotebookLM 大纲自动切幕
-- [ ] 导出 Flow 专用的 JSON 批次文件
-- [ ] 试听 5 秒样本改成可选 2s / 5s / 10s
+1. **同名变量重复 const** —— JS 同作用域内禁止 `const x` 出现两次，否则整支 `<script>` 不执行。每次重写大函数前先 grep 确认。
+2. **GitHub Token 不能贴聊天** —— GitHub 自动撤销，到 github.com/settings/tokens 重新生成。
+3. **API Key 仅本地** —— `localStorage.gemini_key`，不上传任何服务器。
+4. **Whisper 模型 150MB** —— 第一次「转字幕」会下载，需联网；后续浏览器缓存。
+5. **JSZip 来自 CDN** —— 离线时打包 WAV 会失败，会有 toast 提醒。
+6. **音频解码限制** —— `AudioContext({ sampleRate: 16000 })` 在某些 Safari 版本有限制；遇到失败建议改用 Chrome。
+7. **旁白幕数 vs g-num-scenes** —— 一切按旁白里的「第X幕」实际数量为准，顶部输入框只是 NBM Prompt 用。
+8. **bfcache / form autofill** —— 浏览器会保留 textarea 内容跨刷新；resetAll 显式清后再 reload。
