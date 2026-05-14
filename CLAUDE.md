@@ -157,15 +157,48 @@ NotebookLM 回传格式不固定（有时 `**原文：** xxx`、有时 `**原文
 - [x] 修一个 `Identifier 'lines' has already been declared` 把整支 JS 击穿的 bug
 - [x] 部署到 GitHub Pages（独立仓库）
 
+### 第九阶段 · 解析标签剥除 + 字幕对齐重写（2026-05-15）
+
+#### 问题 1：旁白里出现「内容」两字
+NotebookLM 的回传格式有时是 `原文内容：xxx`（而非 `原文：xxx`）。  
+旧 strip 正则只剥 `原文`，留下 `内容：` 前缀，导致旁白显示 `第1幕：内容："我跟妹妹搭积木`。
+
+**修复**：  
+- HEADER 正则加入 `内容`，让含「内容」的短标题行（≤15 字）也能被识别  
+- strip 正则在 `原文` 之前加入更长的变体（优先匹配顺序）：  
+  `故事原文内容 | 课文原文内容 | 原文内容 | 故事原文 | 课文原文 | 原文 | 故事内容 | 课文内容 | 内容`  
+- 前置修饰剥除 `^[^原内OSs]*` 同步支持以「内」开头的标签（如「内容：」）
+
+受支持的标签格式（全部正确剥除，只保留故事文字）：
+```
+原文：        原文内容：     课文内容：    故事内容：
+**原文**：    **原文内容：** **课文内容**  故事原文：
+```
+
+#### 问题 2：「用旁白文本校正」后字幕内容仍是 Whisper 识别文字
+旧 `alignChunksToText` 以 Whisper chunk 为基础，把旁白文字「填入」时间范围内的 chunk。  
+当 Whisper 输出 chunk 数 < 旁白幕数（如 3 chunk vs 5幕）时，没有 chunk 落在某幕时间范围内的那几幕被 `continue` 跳过，字幕里完全缺失那几幕的旁白文字。
+
+**修复**：完全重写 `alignChunksToText`，改为以旁白为唯一来源：
+```js
+// 新逻辑：直接生成 N 条字幕（N = 旁白幕数），文字来自旁白，时间来自切点
+return sceneTexts.map((text, i) => ({
+  timestamp: [points[i], points[i + 1]],
+  text: (text || '').replace(/\s+/g, ''),
+  sceneIdx: i,
+}));
+```
+- Whisper chunk 仅用于 `computeSplitPointsByText` 吸附语音停顿点
+- 无论 Whisper 输出几条 chunk，字幕条数一定等于旁白幕数，内容一定是旁白文本
+
 ---
 
 ## 🚀 部署流程
 
-源文件在 `/Users/weiwen/Downloads/ai_director_studio.html`，每次改动后同步到 `~/ai-director-studio/index.html` 推上 GitHub Pages：
+源文件即本仓库 `index.html`（路径：`/Users/weiwen/Library/CloudStorage/GoogleDrive-vivianeiwen123@gmail.com/我的云端硬盘/AI Project/ai-director-studio/index.html`），直接在仓库内编辑后推上 GitHub Pages：
 
 ```bash
-cp /Users/weiwen/Downloads/ai_director_studio.html ~/ai-director-studio/index.html
-cd ~/ai-director-studio
+cd "/Users/weiwen/Library/CloudStorage/GoogleDrive-vivianeiwen123@gmail.com/我的云端硬盘/AI Project/ai-director-studio"
 git add index.html
 git commit -m "描述改动"
 git push origin main
@@ -177,7 +210,7 @@ git push origin main
 ```bash
 node -e "
 const fs = require('fs');
-const html = fs.readFileSync('/Users/weiwen/Downloads/ai_director_studio.html','utf8');
+const html = fs.readFileSync('/Users/weiwen/Library/CloudStorage/GoogleDrive-vivianeiwen123@gmail.com/我的云端硬盘/AI Project/ai-director-studio/index.html','utf8');
 const m = html.match(/<script(?![^>]*src)[^>]*>([\s\S]*?)<\/script>/g) || [];
 m.forEach((s,i) => {
   const code = s.replace(/^<script[^>]*>/,'').replace(/<\/script>$/,'');
