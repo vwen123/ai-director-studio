@@ -2795,46 +2795,16 @@ function parseNarrationScenes(text, n) {
 
 // 用旁白原文替换 Whisper chunk 文字：按 chunk 时长比例分配字符
 function alignChunksToText(chunks, sceneTexts, totalSec) {
-  if (!chunks.length || !sceneTexts.length) return chunks;
-  // 按各幕字数比例算时间切点（长幕给更多秒数），再吸附到最近的语音停顿点
+  if (!sceneTexts.length) return chunks;
+  // 按各幕字数比例算时间切点，用 Whisper chunk 吸附语音停顿
   const points = computeSplitPointsByText(totalSec, sceneTexts, chunks);
-  const out = chunks.map(c => ({ ...c }));
-  for (let s = 0; s < sceneTexts.length; s++) {
-    const t0 = points[s], t1 = points[s+1];
-    const sceneChunks = out.filter(c => {
-      const mid = ((c.timestamp?.[0] || 0) + (c.timestamp?.[1] || 0)) / 2;
-      return mid >= t0 && mid < t1;
-    });
-    // 直接打上幕索引 —— 底下面板切点会和旁白的幕数完全一致
-    sceneChunks.forEach(c => { c.sceneIdx = s; });
-    if (!sceneChunks.length) continue;
-    const text = (sceneTexts[s] || '').replace(/\s+/g, '');
-    if (!text) continue;
-    const totalDur = sceneChunks.reduce((sum, c) => {
-      const [a, b] = c.timestamp || [0, 0];
-      return sum + Math.max(0.1, (b || a + 1) - a);
-    }, 0);
-    let pos = 0;
-    sceneChunks.forEach((c, i) => {
-      const [a, b] = c.timestamp || [0, 0];
-      const dur = Math.max(0.1, (b || a + 1) - a);
-      let take;
-      if (i === sceneChunks.length - 1) {
-        take = text.length - pos;
-      } else {
-        take = Math.round(text.length * dur / totalDur);
-      }
-      c.text = text.slice(pos, pos + take);
-      pos += take;
-    });
-  }
-  // 兜底：没被分到的 chunk 用最近的 sceneIdx
-  for (let i = 0; i < out.length; i++) {
-    if (typeof out[i].sceneIdx !== 'number') {
-      out[i].sceneIdx = i > 0 ? out[i-1].sceneIdx : 0;
-    }
-  }
-  return out;
+  // 直接以旁白为准：每幕产生一条字幕，文字来自旁白，时间来自切点
+  // 这样无论 Whisper 输出几条 chunk，字幕条数一定等于幕数，内容一定是旁白文本
+  return sceneTexts.map((text, i) => ({
+    timestamp: [points[i], points[i + 1]],
+    text: (text || '').replace(/\s+/g, ''),
+    sceneIdx: i,
+  }));
 }
 
 // 可编辑字幕预览 —— 文字可改 / 切点可调，下载 SRT + 按幕切割均以此为准
