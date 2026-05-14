@@ -3685,7 +3685,7 @@ function parseNbmAndBuildNarration() {
     // 切掉标题词本身 + 冒号
     let tail = clean
       .replace(/^[^原内OSs]*/, '') // 丢弃前置修饰
-      .replace(/^(?:故事原文|课文原文|原文|故事内容|课文内容|内容|Original\s+story\s+text|Story\s+text)\s*[：:]*\s*/i, '')
+      .replace(/^(?:故事原文内容|课文原文内容|原文内容|故事原文|课文原文|原文|故事内容|课文内容|内容|Original\s+story\s+text|Story\s+text)\s*[：:]*\s*/i, '')
       .trim();
 
     // 若同一行没有正文，取接下来几行直到遇到下一个小标题/空行
