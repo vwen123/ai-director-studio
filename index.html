@@ -3662,12 +3662,12 @@ function parseNbmAndBuildNarration() {
     showToast(T('parsedEmpty'));
     return;
   }
-  // 容错匹配：任何包含「原文」二字的行（原文 / 故事原文 / 课文原文 / Original story text...）
+  // 容错匹配：任何包含「原文/内容」的行（原文 / 故事原文 / 课文原文 / 内容 / Original story text...）
   // 支持三种写法：
   //   (1) **原文：** 正文在同一行
   //   (2) **原文** 后换行，正文在下一行
   //   (3) 原文 "正文..."（中英文引号）
-  const HEADER = /原文|Original\s+story\s+text|Story\s+text/i;
+  const HEADER = /原文|内容|Original\s+story\s+text|Story\s+text/i;
   const STOP = /^\s*(?:\*{1,2}\s*(?:插图|图像|画面|视觉|风格|镜头|场景|标题|分镜|提示|prompt|image|visual|scene|title)|第[一二三四五六七八九十百千0-9]+[页幕]|页\s*\d|Page\s*\d|Scene\s*\d|\-{3,}|={3,})/i;
 
   const extracted = [];
@@ -3675,17 +3675,17 @@ function parseNbmAndBuildNarration() {
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    // 去掉 markdown 强调标记后检查是否含"原文"
+    // 去掉 markdown 强调标记后检查是否含"原文"/"内容"
     const clean = line.replace(/[*_`#>]/g, '').trim();
     if (!clean) continue;
-    // 必须是"标题性"的出现：以"原文"开头、或 <=15 字内包含"原文"
+    // 必须是"标题性"的出现：以"原文/内容"开头、或 <=15 字内包含
     const idx = clean.search(HEADER);
     if (idx < 0 || idx > 15) continue;
 
     // 切掉标题词本身 + 冒号
     let tail = clean
-      .replace(/^[^原OSs]*/, '') // 丢弃前置修饰
-      .replace(/^(?:故事原文|课文原文|原文|Original\s+story\s+text|Story\s+text)\s*[：:]*\s*/i, '')
+      .replace(/^[^原内OSs]*/, '') // 丢弃前置修饰
+      .replace(/^(?:故事原文|课文原文|原文|故事内容|课文内容|内容|Original\s+story\s+text|Story\s+text)\s*[：:]*\s*/i, '')
       .trim();
 
     // 若同一行没有正文，取接下来几行直到遇到下一个小标题/空行
