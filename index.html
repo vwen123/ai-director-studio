@@ -653,8 +653,7 @@
           </div>
         </div>
         <div class="btn-row" style="margin-top:10px">
-          <button class="btn btn-primary btn-sm" onclick="geminiTTSGenerate()" data-i18n="ttsGen">🎤 合并生成语音</button>
-          <button class="btn btn-purple btn-sm" onclick="geminiTTSPerScene()" data-i18n="ttsPerScene">🎬 逐幕生成 + 打包</button>
+          <button class="btn btn-primary btn-sm" onclick="geminiTTSGenerate()" data-i18n="ttsGen">🎤 语音生成</button>
           <a class="btn btn-amber btn-sm" href="https://aistudio.google.com/generate-speech" target="_blank" style="text-decoration:none;padding:4px 8px;font-size:0.72rem" title="Google AI Studio" data-i18n="toStudio">🌐 AI Studio</a>
           <button class="btn btn-green btn-sm" id="tts-to-srt-btn" style="display:none" onclick="ttsAudioToSRT()" data-i18n="ttsToSrt">📝 将这段语音转字幕</button>
           <button class="btn btn-cyan btn-sm" id="tts-download-btn" style="display:none" onclick="downloadTTSAudio()" data-i18n="downloadWav">⬇️ 下载 WAV</button>
@@ -2497,15 +2496,12 @@ async function geminiTTSGenerate() {
   const status = document.getElementById('tts-status');
   const player = document.getElementById('tts-player');
 
-  // 去除「第 N 幕：」前缀；每幕末尾补句号（没有标点的话），再用双换行隔开
-  // 句号 + \n\n → Gemini TTS 在幕间产生足够长的停顿，Whisper 能检测到静音切点
-  const SENT_END = /[。！？…」』）\.!\?]$/;
+  // 去除「第 N 幕：」前缀；幕间加三个换行产生明显停顿，供 Whisper 检测切点
   const cleanText = text
     .split('\n')
     .map(ln => ln.replace(/^\s*第[一二三四五六七八九十百千0-9]+[幕页][：:]\s*/, '').trim())
     .filter(ln => ln)
-    .map(ln => SENT_END.test(ln) ? ln : ln + '。')  // 末尾没有标点 → 补句号
-    .join('\n\n')   // 幕间双换行 → 段落停顿
+    .join('\n\n\n')   // 三换行 → 幕间产生较长停顿
     .trim();
   const prompt = style ? `${style}：\n${cleanText}` : cleanText;
   status.innerHTML = `⏳ 生成语音中（${voice}）...`;
