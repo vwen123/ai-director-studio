@@ -3211,33 +3211,23 @@ async function splitAudioByScenes() {
   const totalSec = lastAudio.length / sr;
 
   // 以面板当前的 sceneIdx 为准，重建时间切点
-  // 切点 = (前一幕最后一条 chunk 的结束时间 + 下一幕第一条 chunk 的开始时间) / 2
-  // 这样每幕 WAV 完整包含自己的所有字幕 chunk 音频，不会把字切到下一幕
+  // 切点直接用面板时间戳（syncPanelEdits 已把所有编辑写回 lastChunks）
+  // 幕与幕之间取 prevEnd 和 currStart 的中点，切在静音处
   const chunks = lastChunks || [];
   const hasSceneIdx = chunks.some(c => typeof c.sceneIdx === 'number');
   let points;
   let sceneKeys = [];
   if (hasSceneIdx && chunks.length) {
     sceneKeys = [...new Set(chunks.map(c => c.sceneIdx))].sort((a,b)=>a-b);
-    // 优先用 lastRawChunks（真实 Whisper 停顿时间）+ 旁白字数比例重新算切点，
-    // 避免使用 Stage 9 之后 lastChunks 里的合成时间戳（字数比例估算，可能不准）
-    const narrRaw2 = document.getElementById('narration-out')?.value.trim() || '';
-    const sceneTexts2 = narrRaw2 ? parseNarrationScenes(narrRaw2, sceneKeys.length) : [];
-    if (lastRawChunks && lastRawChunks.length && sceneTexts2.length >= 2) {
-      points = computeSplitPointsByText(totalSec, sceneTexts2, lastRawChunks);
-      sceneKeys = Array.from({length: points.length - 1}, (_, i) => i);
-    } else {
-      // 降级：用面板合成时间戳中点
-      points = [0];
-      for (let s = 1; s < sceneKeys.length; s++) {
-        const prevScene = chunks.filter(c => c.sceneIdx === sceneKeys[s-1]);
-        const currScene = chunks.filter(c => c.sceneIdx === sceneKeys[s]);
-        const prevEnd = prevScene.length ? (prevScene[prevScene.length-1].timestamp?.[1] || 0) : 0;
-        const currStart = currScene.length ? (currScene[0].timestamp?.[0] || prevEnd) : prevEnd;
-        points.push(+((prevEnd + Math.max(prevEnd, currStart)) / 2).toFixed(3));
-      }
-      points.push(totalSec);
+    points = [0];
+    for (let s = 1; s < sceneKeys.length; s++) {
+      const prevScene = chunks.filter(c => c.sceneIdx === sceneKeys[s-1]);
+      const currScene = chunks.filter(c => c.sceneIdx === sceneKeys[s]);
+      const prevEnd   = prevScene.length ? (prevScene[prevScene.length-1].timestamp?.[1] || 0) : 0;
+      const currStart = currScene.length ? (currScene[0].timestamp?.[0] || prevEnd) : prevEnd;
+      points.push(+((prevEnd + Math.max(prevEnd, currStart)) / 2).toFixed(3));
     }
+    points.push(totalSec);
   } else {
     const n = Math.max(2, Math.min(12,
       parseInt(document.getElementById('g-num-scenes')?.value) ||
