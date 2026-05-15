@@ -680,6 +680,7 @@
           </label>
         </div>
         <div id="srt-status" style="margin-top:8px;font-size:0.82rem;color:var(--muted)"></div>
+        <div class="hint" style="margin-top:4px;font-size:0.75rem;color:var(--muted);opacity:0.7">💡 字幕可自由编辑文字；时间戳在「按幕切割」后自动更新为 Whisper 实际切点</div>
         <div class="prompt-out" id="srt-preview" style="margin-top:8px;max-height:320px;overflow-y:auto"></div>
       </div>
     </div>
@@ -3119,13 +3120,12 @@ function computeSplitPointsByText(totalSec, sceneTexts, chunks) {
   const points = [0];
   if (chunks && chunks.length) {
     const ends = chunks.map(c => (c.timestamp && c.timestamp[1]) || 0).filter(x => x > 0);
-    const avgScene = totalSec / n;
     for (const t of ideal) {
+      // 无窗口限制：直接找最近的 Whisper chunk 结束时间，确保切在真实停顿处
       let best = t, bestDiff = Infinity;
       for (const e of ends) {
         const d = Math.abs(e - t);
-        // 容许吸附窗口：比例切点附近 ±35% 的平均幕长
-        if (d < bestDiff && d < avgScene * 0.35) { bestDiff = d; best = e; }
+        if (d < bestDiff) { bestDiff = d; best = e; }
       }
       points.push(best);
     }
@@ -3244,6 +3244,30 @@ async function splitAudioByScenes() {
     points = computeSplitPoints(totalSec, n, chunks);
     sceneKeys = Array.from({length: points.length - 1}, (_, i) => i);
   }
+
+  // 把实际切点回写 lastChunks，面板时间戳 = 真实切点，SRT 也跟着准确
+  const finalSceneKeys = sceneKeys.length ? sceneKeys : Array.from({length: points.length - 1}, (_, i) => i);
+  finalSceneKeys.forEach((k, si) => {
+    const sc = chunks.filter(c => c.sceneIdx === k);
+    if (!sc.length || points[si] == null || points[si+1] == null) return;
+    if (sc.length === 1) {
+      sc[0].timestamp = [points[si], points[si+1]];
+    } else {
+      const oldS = sc[0].timestamp?.[0] ?? points[si];
+      const oldE = sc[sc.length-1].timestamp?.[1] ?? points[si+1];
+      const oldDur = Math.max(0.001, oldE - oldS);
+      const newDur = points[si+1] - points[si];
+      sc.forEach(c => {
+        const [a, b] = c.timestamp || [oldS, oldE];
+        c.timestamp = [
+          +(points[si] + (a - oldS) / oldDur * newDur).toFixed(3),
+          +(points[si] + (b - oldS) / oldDur * newDur).toFixed(3),
+        ];
+      });
+    }
+  });
+  lastSRT = chunksToSRT(chunks);
+  renderSrtPreviewGrouped(chunks);
 
   const status = document.getElementById('srt-status');
   status.innerHTML = `✂️ 切割中，共 ${points.length - 1} 段...`;
