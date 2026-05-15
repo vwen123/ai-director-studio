@@ -653,12 +653,13 @@
           </div>
         </div>
         <div class="btn-row" style="margin-top:10px">
-          <button class="btn btn-primary btn-sm" onclick="geminiTTSGenerate()" data-i18n="ttsGen">🎤 一键生成语音</button>
+          <button class="btn btn-primary btn-sm" onclick="geminiTTSGenerate()" data-i18n="ttsGen">🎤 合并生成语音</button>
+          <button class="btn btn-purple btn-sm" onclick="geminiTTSPerScene()" data-i18n="ttsPerScene">🎬 逐幕生成 + 打包</button>
           <a class="btn btn-amber btn-sm" href="https://aistudio.google.com/generate-speech" target="_blank" style="text-decoration:none;padding:4px 8px;font-size:0.72rem" title="Google AI Studio" data-i18n="toStudio">🌐 AI Studio</a>
           <button class="btn btn-green btn-sm" id="tts-to-srt-btn" style="display:none" onclick="ttsAudioToSRT()" data-i18n="ttsToSrt">📝 将这段语音转字幕</button>
           <button class="btn btn-cyan btn-sm" id="tts-download-btn" style="display:none" onclick="downloadTTSAudio()" data-i18n="downloadWav">⬇️ 下载 WAV</button>
         </div>
-        <div class="hint" style="margin-top:6px" data-i18n="ttsHint">💡 Gemini 免费版限 10 次/分钟；超限可先到 Google AI Studio 生成，再下载 WAV 回来转字幕</div>
+        <div class="hint" style="margin-top:6px" data-i18n="ttsHint">💡 逐幕生成：每幕一个独立 WAV，无需切割；合并生成：一次生成整段再手动切割</div>
         <div id="tts-status" style="margin-top:8px;font-size:0.82rem;color:var(--muted)"></div>
         <audio id="tts-player" controls style="display:none;width:100%;margin-top:10px"></audio>
       </div>
@@ -2496,12 +2497,15 @@ async function geminiTTSGenerate() {
   const status = document.getElementById('tts-status');
   const player = document.getElementById('tts-player');
 
-  // 去除「第 N 幕：」前缀，幕与幕之间插入停顿符（让 Gemini TTS 产生明显静音，便于后续按幕切割）
+  // 去除「第 N 幕：」前缀；每幕末尾补句号（没有标点的话），再用双换行隔开
+  // 句号 + \n\n → Gemini TTS 在幕间产生足够长的停顿，Whisper 能检测到静音切点
+  const SENT_END = /[。！？…」』）\.!\?]$/;
   const cleanText = text
     .split('\n')
     .map(ln => ln.replace(/^\s*第[一二三四五六七八九十百千0-9]+[幕页][：:]\s*/, '').trim())
     .filter(ln => ln)
-    .join('\n\n')   // 双换行 → Gemini TTS 在幕间产生停顿
+    .map(ln => SENT_END.test(ln) ? ln : ln + '。')  // 末尾没有标点 → 补句号
+    .join('\n\n')   // 幕间双换行 → 段落停顿
     .trim();
   const prompt = style ? `${style}：\n${cleanText}` : cleanText;
   status.innerHTML = `⏳ 生成语音中（${voice}）...`;
