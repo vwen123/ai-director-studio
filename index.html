@@ -3637,7 +3637,8 @@ function parseNbmAndBuildNarration() {
   //   (1) **原文：** 正文在同一行
   //   (2) **原文** 后换行，正文在下一行
   //   (3) 原文 "正文..."（中英文引号）
-  const HEADER = /原文|内容|Original\s+story\s+text|Story\s+text/i;
+  // 锚定行首：只认「原文/故事原文/课文原文/内容」开头的行，避免「插图内容」「画面内容」误匹配
+  const HEADER = /^(?:故事原文内容|课文原文内容|原文内容|故事原文|课文原文|原文|故事内容|课文内容|内容|Original\s+story\s+text|Story\s+text)/i;
   const STOP = /^\s*(?:\*{1,2}\s*(?:插图|图像|画面|视觉|风格|镜头|场景|标题|分镜|提示|prompt|image|visual|scene|title)|第[一二三四五六七八九十百千0-9]+[页幕]|页\s*\d|Page\s*\d|Scene\s*\d|\-{3,}|={3,})/i;
 
   const extracted = [];
