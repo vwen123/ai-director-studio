@@ -2496,11 +2496,12 @@ async function geminiTTSGenerate() {
   const status = document.getElementById('tts-status');
   const player = document.getElementById('tts-player');
 
-  // 去除「第 N 幕：」前缀，避免朗读时念出分幕标记
+  // 去除「第 N 幕：」前缀，幕与幕之间插入停顿符（让 Gemini TTS 产生明显静音，便于后续按幕切割）
   const cleanText = text
     .split('\n')
-    .map(ln => ln.replace(/^\s*第[一二三四五六七八九十百千0-9]+[幕页][：:]\s*/, ''))
-    .join('\n')
+    .map(ln => ln.replace(/^\s*第[一二三四五六七八九十百千0-9]+[幕页][：:]\s*/, '').trim())
+    .filter(ln => ln)
+    .join('\n\n')   // 双换行 → Gemini TTS 在幕间产生停顿
     .trim();
   const prompt = style ? `${style}：\n${cleanText}` : cleanText;
   status.innerHTML = `⏳ 生成语音中（${voice}）...`;
