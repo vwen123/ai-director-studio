@@ -191,6 +191,52 @@ return sceneTexts.map((text, i) => ({
 - Whisper chunk 仅用于 `computeSplitPointsByText` 吸附语音停顿点
 - 无论 Whisper 输出几条 chunk，字幕条数一定等于旁白幕数，内容一定是旁白文本
 
+### 第十阶段 · 按幕切割精度全面修复（2026-05-15）
+
+#### 问题 1：切割不跟字幕对齐、字被吃掉
+`splitAudioByScenes` 原来用「两幕交界时间的中点」作为切点，跟字幕显示时间有偏差。先改为直接用 `currStart`，再发现根本原因是时间戳来自字数比例估算，可能落在字中间。
+
+**修复 1**：保留 Whisper 原始输出到 `lastRawChunks`，与 `lastChunks`（字幕显示）职责分离：
+```js
+let lastRawChunks = [];   // 原始 Whisper 停顿边界，专用于音频切割
+// handleAudioUpload 里在 alignChunksToText 之前保存
+const rawChunks = result.chunks || [];
+...
+lastRawChunks = rawChunks;
+```
+
+#### 问题 2：`findSilenceCutPoint ±1.5s` 搜索范围太宽，跳到错误幕的静音
+加入静音检测函数后，±1.5s 窗口会找到其他幕的静音点，切到完全错误的位置。
+
+**修复 2**：彻底换方案——`findCutTimesBySceneText`：
+```
+旁白第N幕字数 / 旁白总字数 → 映射到 Whisper 文字流的字符位置
+→ 找含该位置的 Whisper chunk → 取该 chunk 结束时间
+```
+- 切点一定是真实语音停顿（Whisper chunk 边界）
+- 一定对应该幕最后一个字说完之后
+- 不会跨越幕到其他幕的静音
+- 无 `lastRawChunks` 时降级用面板时间戳
+
+#### 问题 3：切割后 SRT 时间戳与音频切点不一致
+切割后未更新 `lastChunks`，面板和 SRT 仍显示旧的估算时间。
+
+**修复 3**：`splitAudioByScenes` 切割后把实际切点写回 `lastChunks`，重新渲染面板：
+```js
+sceneChunks[0].timestamp = [sceneStart, sceneEnd]; // 单 chunk per scene
+lastSRT = chunksToSRT(chunks);
+renderSrtPreviewGrouped(chunks);
+```
+ZIP 里额外打包每幕独立 SRT（时间从 0 起，与对应 WAV 对齐）。
+
+#### 问题 4：NBM 解析「内容」误匹配
+`/原文|内容/` 无行首锚定，「插图内容：」「画面内容：」等行被误抽取为旁白。
+
+**修复 4**：HEADER 正则改为行首锚定完整标签列表：
+```js
+const HEADER = /^(?:故事原文内容|课文原文内容|原文内容|故事原文|课文原文|原文|故事内容|课文内容|内容|Original\s+story\s+text|Story\s+text)/i;
+```
+
 ---
 
 ## 🚀 部署流程

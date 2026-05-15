@@ -2610,6 +2610,7 @@ let lastSRT = '';
 let lastAudio = null;          // Float32Array (mono)
 let lastSampleRate = 16000;
 let lastChunks = [];
+let lastRawChunks = [];    // 原始 Whisper 输出，保留真实语音停顿时间用于精确切割
 
 async function loadWhisper() {
   if (whisperPipe) return whisperPipe;
@@ -2670,7 +2671,8 @@ async function handleAudioUpload(e) {
       stride_length_s: 5,
     });
 
-    let chunks = result.chunks || [];
+    const rawChunks = result.chunks || [];   // 保留原始 Whisper 停顿时间
+    let chunks = rawChunks.slice();
     const totalSec = audio.length / 16000;
     const n = Math.max(2, Math.min(12,
       parseInt(document.getElementById('g-num-scenes')?.value) ||
@@ -2708,6 +2710,7 @@ async function handleAudioUpload(e) {
     lastSRT = chunksToSRT(chunks);
     lastAudio = audio;               // Float32 16kHz mono
     lastSampleRate = 16000;
+    lastRawChunks = rawChunks;       // 原始 Whisper 停顿边界，专用于音频切割
     lastChunks = chunks;
     __lastAlignedNarration = usedCorrection ? narrRaw : '';
     renderSrtPreviewGrouped(chunks, n);
@@ -3098,8 +3101,57 @@ function float32ToWav(samples, sampleRate) {
   return new Blob([buffer], { type: 'audio/wav' });
 }
 
-// 计算 N 幕的切割点（秒）— 优先使用 Whisper chunks 的语义边界，否则均分
-// 按各幕字数比例算时间切点（更贴合真实朗读节奏），再吸附到最近的语音停顿
+// 按旁白各幕字数比例，在 Whisper 原始文字流里找各幕末字所在 chunk，
+// 取该 chunk 的结束时间作为切点——既是真实停顿，又精确对应该幕最后一个字。
+// rawChunks: Whisper 原始输出；sceneTexts: 各幕旁白字符串数组
+// 返回 N-1 个切点时间（不含 0 和 totalSec）
+function findCutTimesBySceneText(rawChunks, sceneTexts) {
+  if (!rawChunks || !rawChunks.length || sceneTexts.length < 2) return null;
+  const norm = s => (s || '').replace(/\s/g, '');
+  const chunkTexts = rawChunks.map(c => norm(c.text));
+  const totalWhisperChars = chunkTexts.reduce((s, t) => s + t.length, 0);
+  if (!totalWhisperChars) return null;
+  const totalNarrChars = sceneTexts.reduce((s, t) => s + norm(t).length, 0);
+  if (!totalNarrChars) return null;
+  // 每个 chunk 的累计字数
+  const cumChars = [];
+  let acc = 0;
+  for (const t of chunkTexts) { acc += t.length; cumChars.push(acc); }
+  const cuts = [];
+  let narrAcc = 0;
+  for (let si = 0; si < sceneTexts.length - 1; si++) {
+    narrAcc += norm(sceneTexts[si]).length;
+    // 旁白字数比例映射到 Whisper 字符位置
+    const whisperPos = (narrAcc / totalNarrChars) * totalWhisperChars;
+    // 找含该位置的 chunk，取其结束时间（真实停顿）
+    let cutTime = rawChunks[rawChunks.length - 1].timestamp?.[1] || 0;
+    for (let ci = 0; ci < rawChunks.length; ci++) {
+      if (cumChars[ci] >= whisperPos) {
+        cutTime = +(rawChunks[ci].timestamp?.[1] || 0).toFixed(3);
+        break;
+      }
+    }
+    cuts.push(cutTime);
+  }
+  return cuts;
+}
+
+// 在音频 approxSec 附近 ±windowSec 范围内，找 RMS 能量最低的 frameSec 帧中心作为切点
+function findSilenceCutPoint(audio, sr, approxSec, windowSec = 1.5, frameSec = 0.05) {
+  const frameLen = Math.round(frameSec * sr);
+  const searchStart = Math.max(0, Math.round((approxSec - windowSec) * sr));
+  const searchEnd   = Math.min(audio.length - frameLen, Math.round((approxSec + windowSec) * sr));
+  if (searchStart >= searchEnd) return approxSec;
+  let bestRms = Infinity, bestSec = approxSec;
+  for (let pos = searchStart; pos < searchEnd; pos += frameLen) {
+    let sum = 0;
+    for (let j = 0; j < frameLen; j++) sum += audio[pos + j] ** 2;
+    const rms = Math.sqrt(sum / frameLen);
+    if (rms < bestRms) { bestRms = rms; bestSec = (pos + frameLen / 2) / sr; }
+  }
+  return +bestSec.toFixed(3);
+}
+
 function computeSplitPointsByText(totalSec, sceneTexts, chunks) {
   const n = sceneTexts.length;
   if (n < 2) return [0, totalSec];
@@ -3182,7 +3234,7 @@ function resetAll() {
   });
   // 重置音频/字幕状态
   try {
-    lastAudio = null; lastChunks = []; lastTTSBlob = null; lastSRT = '';
+    lastAudio = null; lastChunks = []; lastRawChunks = []; lastTTSBlob = null; lastSRT = '';
     ['split-audio-btn','srt-dl-btn','srt-copy-btn','tts-to-srt-btn'].forEach(id => {
       const el = document.getElementById(id); if (el) el.style.display = 'none';
     });
@@ -3206,23 +3258,32 @@ async function splitAudioByScenes() {
   const sr = lastSampleRate;
   const totalSec = lastAudio.length / sr;
 
-  // 以面板当前的 sceneIdx 为准，重建时间切点
-  // 切点 = (前一幕最后一条 chunk 的结束时间 + 下一幕第一条 chunk 的开始时间) / 2
-  // 这样每幕 WAV 完整包含自己的所有字幕 chunk 音频，不会把字切到下一幕
+  // 1. syncPanelEdits() 已把面板最新文字+时间写回 lastChunks
+  // 2. 以面板时间戳为搜索中心，扫描音频波形找实际静音点切割
   const chunks = lastChunks || [];
   const hasSceneIdx = chunks.some(c => typeof c.sceneIdx === 'number');
   let points;
   let sceneKeys = [];
   if (hasSceneIdx && chunks.length) {
     sceneKeys = [...new Set(chunks.map(c => c.sceneIdx))].sort((a,b)=>a-b);
+    // 用旁白各幕字数在 Whisper 原始文字流里找各幕末字所在 chunk 的结束时间
+    const narrRaw2 = document.getElementById('narration-out')?.value.trim() || '';
+    const sceneTexts2 = narrRaw2 ? parseNarrationScenes(narrRaw2, sceneKeys.length) : [];
+    const whisperCuts = (lastRawChunks.length && sceneTexts2.length >= 2)
+      ? findCutTimesBySceneText(lastRawChunks, sceneTexts2)
+      : null;
     points = [0];
     for (let s = 1; s < sceneKeys.length; s++) {
-      const prevScene = chunks.filter(c => c.sceneIdx === sceneKeys[s-1]);
-      const currScene = chunks.filter(c => c.sceneIdx === sceneKeys[s]);
-      const prevEnd = prevScene.length ? (prevScene[prevScene.length-1].timestamp?.[1] || 0) : 0;
-      const currStart = currScene.length ? (currScene[0].timestamp?.[0] || prevEnd) : prevEnd;
-      const mid = (prevEnd + Math.max(prevEnd, currStart)) / 2;
-      points.push(+mid.toFixed(3));
+      if (whisperCuts && whisperCuts[s - 1] != null) {
+        points.push(whisperCuts[s - 1]);   // 用 Whisper 文字流定位该幕末字后的停顿
+      } else {
+        // 降级：用面板显示的时间戳
+        const prevScene = chunks.filter(c => c.sceneIdx === sceneKeys[s-1]);
+        const currScene = chunks.filter(c => c.sceneIdx === sceneKeys[s]);
+        const prevEnd   = prevScene.length ? (prevScene[prevScene.length-1].timestamp?.[1] || 0) : 0;
+        const currStart = currScene.length ? (currScene[0].timestamp?.[0] || prevEnd) : prevEnd;
+        points.push(+((prevEnd + currStart) / 2).toFixed(3));
+      }
     }
     points.push(totalSec);
   } else {
@@ -3233,6 +3294,30 @@ async function splitAudioByScenes() {
     points = computeSplitPoints(totalSec, n, chunks);
     sceneKeys = Array.from({length: points.length - 1}, (_, i) => i);
   }
+
+    // 把静音检测到的实际切点写回 lastChunks，使面板时间戳 = 音频切割时间戳
+  sceneKeys.forEach((k, si) => {
+    const sceneChunks = chunks.filter(c => c.sceneIdx === k);
+    if (!sceneChunks.length) return;
+    const sceneStart = points[si], sceneEnd = points[si + 1];
+    if (sceneChunks.length === 1) {
+      sceneChunks[0].timestamp = [sceneStart, sceneEnd];
+    } else {
+      const oldStart = sceneChunks[0].timestamp?.[0] ?? sceneStart;
+      const oldEnd   = sceneChunks[sceneChunks.length - 1].timestamp?.[1] ?? sceneEnd;
+      const oldDur = Math.max(0.001, oldEnd - oldStart);
+      const newDur = sceneEnd - sceneStart;
+      sceneChunks.forEach(c => {
+        const [a, b] = c.timestamp || [oldStart, oldEnd];
+        c.timestamp = [
+          +(sceneStart + (a - oldStart) / oldDur * newDur).toFixed(3),
+          +(sceneStart + (b - oldStart) / oldDur * newDur).toFixed(3),
+        ];
+      });
+    }
+  });
+  lastSRT = chunksToSRT(chunks);
+  renderSrtPreviewGrouped(chunks);   // 面板时间戳同步更新为实际切点
 
   const status = document.getElementById('srt-status');
   status.innerHTML = `✂️ 切割中，共 ${points.length - 1} 段...`;
@@ -3248,7 +3333,15 @@ async function splitAudioByScenes() {
     const wav = float32ToWav(slice, sr);
     const fname = `${String(i+1).padStart(2,'0')}_${title}.wav`;
     zip.file(fname, wav);
-
+    // 每幕独立 SRT（时间从 0 开始，与对应 WAV 对齐）
+    const sceneChunks = chunks.filter(c => c.sceneIdx === sceneKeys[i]);
+    if (sceneChunks.length) {
+      const offset = startT;
+      const sceneSRT = chunksToSRT(sceneChunks.map(c => ({
+        ...c, timestamp: [+(c.timestamp[0] - offset).toFixed(3), +(c.timestamp[1] - offset).toFixed(3)]
+      })));
+      if (sceneSRT) zip.file(`${String(i+1).padStart(2,'0')}_${title}.srt`, sceneSRT);
+    }
   }
 
   // 完整 SRT（整部作品贯穿时间轴，方便整支剪辑）
@@ -3637,7 +3730,8 @@ function parseNbmAndBuildNarration() {
   //   (1) **原文：** 正文在同一行
   //   (2) **原文** 后换行，正文在下一行
   //   (3) 原文 "正文..."（中英文引号）
-  const HEADER = /原文|内容|Original\s+story\s+text|Story\s+text/i;
+  // 锚定行首：只认「原文/故事原文/课文原文/内容」开头的行，避免「插图内容」「画面内容」误匹配
+  const HEADER = /^(?:故事原文内容|课文原文内容|原文内容|故事原文|课文原文|原文|故事内容|课文内容|内容|Original\s+story\s+text|Story\s+text)/i;
   const STOP = /^\s*(?:\*{1,2}\s*(?:插图|图像|画面|视觉|风格|镜头|场景|标题|分镜|提示|prompt|image|visual|scene|title)|第[一二三四五六七八九十百千0-9]+[页幕]|页\s*\d|Page\s*\d|Scene\s*\d|\-{3,}|={3,})/i;
 
   const extracted = [];
