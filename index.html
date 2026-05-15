@@ -2610,6 +2610,7 @@ let lastSRT = '';
 let lastAudio = null;          // Float32Array (mono)
 let lastSampleRate = 16000;
 let lastChunks = [];
+let lastRawChunks = [];        // 原始 Whisper 输出，保留真实停顿时间用于精确切割
 
 async function loadWhisper() {
   if (whisperPipe) return whisperPipe;
@@ -2670,7 +2671,9 @@ async function handleAudioUpload(e) {
       stride_length_s: 5,
     });
 
-    let chunks = result.chunks || [];
+    const rawChunks = result.chunks || [];
+    lastRawChunks = rawChunks;             // 保存原始 Whisper 停顿时间，供切割使用
+    let chunks = rawChunks.slice();
     const totalSec = audio.length / 16000;
     const n = Math.max(2, Math.min(12,
       parseInt(document.getElementById('g-num-scenes')?.value) ||
@@ -3215,16 +3218,25 @@ async function splitAudioByScenes() {
   let sceneKeys = [];
   if (hasSceneIdx && chunks.length) {
     sceneKeys = [...new Set(chunks.map(c => c.sceneIdx))].sort((a,b)=>a-b);
-    points = [0];
-    for (let s = 1; s < sceneKeys.length; s++) {
-      const prevScene = chunks.filter(c => c.sceneIdx === sceneKeys[s-1]);
-      const currScene = chunks.filter(c => c.sceneIdx === sceneKeys[s]);
-      const prevEnd = prevScene.length ? (prevScene[prevScene.length-1].timestamp?.[1] || 0) : 0;
-      const currStart = currScene.length ? (currScene[0].timestamp?.[0] || prevEnd) : prevEnd;
-      const mid = (prevEnd + Math.max(prevEnd, currStart)) / 2;
-      points.push(+mid.toFixed(3));
+    // 优先用 lastRawChunks（真实 Whisper 停顿时间）+ 旁白字数比例重新算切点，
+    // 避免使用 Stage 9 之后 lastChunks 里的合成时间戳（字数比例估算，可能不准）
+    const narrRaw2 = document.getElementById('narration-out')?.value.trim() || '';
+    const sceneTexts2 = narrRaw2 ? parseNarrationScenes(narrRaw2, sceneKeys.length) : [];
+    if (lastRawChunks && lastRawChunks.length && sceneTexts2.length >= 2) {
+      points = computeSplitPointsByText(totalSec, sceneTexts2, lastRawChunks);
+      sceneKeys = Array.from({length: points.length - 1}, (_, i) => i);
+    } else {
+      // 降级：用面板合成时间戳中点
+      points = [0];
+      for (let s = 1; s < sceneKeys.length; s++) {
+        const prevScene = chunks.filter(c => c.sceneIdx === sceneKeys[s-1]);
+        const currScene = chunks.filter(c => c.sceneIdx === sceneKeys[s]);
+        const prevEnd = prevScene.length ? (prevScene[prevScene.length-1].timestamp?.[1] || 0) : 0;
+        const currStart = currScene.length ? (currScene[0].timestamp?.[0] || prevEnd) : prevEnd;
+        points.push(+((prevEnd + Math.max(prevEnd, currStart)) / 2).toFixed(3));
+      }
+      points.push(totalSec);
     }
-    points.push(totalSec);
   } else {
     const n = Math.max(2, Math.min(12,
       parseInt(document.getElementById('g-num-scenes')?.value) ||
