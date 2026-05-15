@@ -232,10 +232,35 @@ ZIP 里额外打包每幕独立 SRT（时间从 0 起，与对应 WAV 对齐）�
 #### 问题 4：NBM 解析「内容」误匹配
 `/原文|内容/` 无行首锚定，「插图内容：」「画面内容：」等行被误抽取为旁白。
 
-**修复 4**：HEADER 正则改为行首锚定完整标签列表：
+**修复 4**：HEADER 正则改为行首锚定，且移除裸字「内容」（NBM 用它标注镜头描述）：
 ```js
-const HEADER = /^(?:故事原文内容|课文原文内容|原文内容|故事原文|课文原文|原文|故事内容|课文内容|内容|Original\s+story\s+text|Story\s+text)/i;
+const HEADER = /^(?:故事原文内容|课文原文内容|原文内容|故事原文|课文原文|原文|Original\s+story\s+text|Story\s+text)/i;
 ```
+
+---
+
+### 第十一阶段 · 切割架构重整 + TTS 停顿优化（2026-05-16）
+
+#### 架构决定：字幕面板与音频切割职责分离
+- `lastChunks`（面板）= 显示用，文字可自由编辑，时间戳为估算值
+- `lastRawChunks`（Whisper 原始输出）= 切割用，真实音频停顿时间
+- `splitAudioByScenes` 切割来源：`computeSplitPointsByText(totalSec, sceneTexts, lastRawChunks)`
+- 切完后把实际切点回写 `lastChunks` + 重新渲染面板，面板时间 = 真实切点
+
+#### 关键修复清单
+1. **去掉 ±35% 吸附窗口**：`computeSplitPointsByText` 改为无限制找最近 Whisper chunk 结束时间，保证切点永远在真实停顿处
+2. **TTS 幕间加三换行**：`geminiTTSGenerate` 幕间从 `\n` 改为 `\n\n\n`，让 Gemini TTS 在幕间产生足够长停顿，Whisper 能检测到静音
+3. **NBM 解析移除裸字「内容」**：避免 NBM 镜头描述行（含「内容」标签）被误抽为旁白
+4. **面板提示文字**：说明时间戳在按幕切割后自动更新为 Whisper 实际切点
+
+#### 正确使用流程
+```
+旁白写好（每幕一行）
+→ 语音生成（幕间自动 \n\n\n 停顿）
+→ 📝 将这段语音转字幕（Whisper 转录，保存 lastRawChunks）
+→ ✂️ 按幕切割 + 打包下载（用 lastRawChunks 切割，切点回写面板）
+```
+上传 AI Studio 音频同样适用：上传 → 转字幕 → 切割，流程一致。
 
 ---
 
