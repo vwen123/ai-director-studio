@@ -781,119 +781,119 @@
 //  视觉风格完整清单（中 → 英）
 // ═════════════════════════════════════════════════════════════
 const STYLE_GROUPS = [
-  { name: '⭐ 教学常用', items: [
-    ['3D皮克斯','3D Pixar style, cinematic'],
-    ['吉卜力','Studio Ghibli anime, soft watercolor, hand-drawn'],
-    ['动漫风','anime, Japanese animation'],
-    ['卡通风','cartoon style, playful'],
-    ['童话风','fairy tale storybook'],
-    ['绘本风','storybook illustration, warm and whimsical'],
-    ['水彩风','watercolor, soft washes'],
-    ['Q版','chibi, super deformed, cute'],
-    ['3D卡通','3D cartoon render'],
-    ['手绘风','hand-drawn illustration'],
-    ['扁平设计','flat design, 2D vector'],
-    ['漫画风','comic book style'],
+  { name: '⭐ 教学常用', nameEn: '⭐ Teaching Essentials', items: [
+    ['3D皮克斯','3D Pixar style, cinematic','3D Pixar'],
+    ['吉卜力','Studio Ghibli anime, soft watercolor, hand-drawn','Ghibli'],
+    ['动漫风','anime, Japanese animation','Anime'],
+    ['卡通风','cartoon style, playful','Cartoon'],
+    ['童话风','fairy tale storybook','Fairy tale'],
+    ['绘本风','storybook illustration, warm and whimsical','Storybook'],
+    ['水彩风','watercolor, soft washes','Watercolor'],
+    ['Q版','chibi, super deformed, cute','Chibi'],
+    ['3D卡通','3D cartoon render','3D Cartoon'],
+    ['手绘风','hand-drawn illustration','Hand-drawn'],
+    ['扁平设计','flat design, 2D vector','Flat design'],
+    ['漫画风','comic book style','Comic book'],
   ]},
-  { name: '🎬 3D / 动画', items: [
-    ['3D皮克斯','3D Pixar style, cinematic'],
-    ['3D卡通','3D cartoon render'],
-    ['3D写实','3D realistic render'],
-    ['吉卜力','Studio Ghibli anime, soft watercolor, hand-drawn'],
-    ['动漫风','anime, Japanese animation'],
-    ['美式漫画','American comic style, bold inks'],
-    ['欧式漫画','European comic, bande dessinée'],
-    ['低多边形','low poly, faceted geometry'],
-    ['等距视角','isometric view'],
-    ['动态模糊','motion blur'],
-    ['微缩模型风','tilt-shift miniature'],
+  { name: '🎬 3D / 动画', nameEn: '🎬 3D / Animation', items: [
+    ['3D皮克斯','3D Pixar style, cinematic','3D Pixar'],
+    ['3D卡通','3D cartoon render','3D Cartoon'],
+    ['3D写实','3D realistic render','3D Realistic'],
+    ['吉卜力','Studio Ghibli anime, soft watercolor, hand-drawn','Ghibli'],
+    ['动漫风','anime, Japanese animation','Anime'],
+    ['美式漫画','American comic style, bold inks','American Comic'],
+    ['欧式漫画','European comic, bande dessinée','European Comic'],
+    ['低多边形','low poly, faceted geometry','Low Poly'],
+    ['等距视角','isometric view','Isometric'],
+    ['动态模糊','motion blur','Motion Blur'],
+    ['微缩模型风','tilt-shift miniature','Tilt-shift'],
   ]},
-  { name: '✏️ 手绘 / 插画', items: [
-    ['水彩风','watercolor, soft washes'],
-    ['手绘风','hand-drawn illustration'],
-    ['速写风','sketch, pencil drawing'],
-    ['线稿风','line art, clean outlines'],
-    ['彩色素描','colored pencil sketch'],
-    ['炭笔风','charcoal drawing, black and white'],
-    ['粉彩风','pastel, chalky soft'],
-    ['油画风','oil painting, classical'],
-    ['压克力画风','acrylic painting, vibrant'],
-    ['厚涂风','impasto, thick paint strokes'],
-    ['平涂风','flat coloring, cel shading'],
-    ['版画风','printmaking, woodblock'],
-    ['绘本风','storybook illustration, warm and whimsical'],
-    ['童话风','fairy tale storybook'],
-    ['Q版','chibi, super deformed, cute'],
+  { name: '✏️ 手绘 / 插画', nameEn: '✏️ Hand-drawn / Illustration', items: [
+    ['水彩风','watercolor, soft washes','Watercolor'],
+    ['手绘风','hand-drawn illustration','Hand-drawn'],
+    ['速写风','sketch, pencil drawing','Sketch'],
+    ['线稿风','line art, clean outlines','Line art'],
+    ['彩色素描','colored pencil sketch','Colored pencil'],
+    ['炭笔风','charcoal drawing, black and white','Charcoal'],
+    ['粉彩风','pastel, chalky soft','Pastel'],
+    ['油画风','oil painting, classical','Oil painting'],
+    ['压克力画风','acrylic painting, vibrant','Acrylic'],
+    ['厚涂风','impasto, thick paint strokes','Impasto'],
+    ['平涂风','flat coloring, cel shading','Cel shading'],
+    ['版画风','printmaking, woodblock','Woodblock'],
+    ['绘本风','storybook illustration, warm and whimsical','Storybook'],
+    ['童话风','fairy tale storybook','Fairy tale'],
+    ['Q版','chibi, super deformed, cute','Chibi'],
   ]},
-  { name: '🖼️ 质感 / 工艺', items: [
-    ['黏土风','claymation, stop-motion'],
-    ['折纸风','origami, paper folded'],
-    ['纸雕风','paper cut art, layered paper'],
-    ['立体剪贴','3D paper craft'],
-    ['毛绒风','plush toy, fluffy texture'],
-    ['针织风','knitted yarn texture'],
-    ['彩色玻璃','stained glass, leaded segments'],
-    ['金属拉丝','brushed metal texture'],
-    ['拼贴艺术','collage art, mixed media'],
-    ['电路板风','circuit board, tech patterns'],
+  { name: '🖼️ 质感 / 工艺', nameEn: '🖼️ Texture / Craft', items: [
+    ['黏土风','claymation, stop-motion','Claymation'],
+    ['折纸风','origami, paper folded','Origami'],
+    ['纸雕风','paper cut art, layered paper','Paper cut'],
+    ['立体剪贴','3D paper craft','3D Paper craft'],
+    ['毛绒风','plush toy, fluffy texture','Plush'],
+    ['针织风','knitted yarn texture','Knitted'],
+    ['彩色玻璃','stained glass, leaded segments','Stained glass'],
+    ['金属拉丝','brushed metal texture','Brushed metal'],
+    ['拼贴艺术','collage art, mixed media','Collage'],
+    ['电路板风','circuit board, tech patterns','Circuit board'],
   ]},
-  { name: '🔮 奇幻 / 科幻', items: [
-    ['奇幻风','fantasy, magical'],
-    ['科幻风','sci-fi, futuristic'],
-    ['赛博朋克','cyberpunk, neon, dystopian'],
-    ['蒸汽朋克','steampunk, Victorian mechanical'],
-    ['柴油朋克','dieselpunk, retro-futuristic'],
-    ['黑暗风','dark art, moody, grim'],
-    ['哥特风','gothic, ornate, dark'],
-    ['霓虹灯感','neon glow, synthwave'],
-    ['雾气迷蒙','misty, ethereal fog'],
-    ['极光感','aurora, iridescent'],
-    ['黑色电影','film noir, black and white, shadows'],
-    ['剪影风','silhouette, backlit'],
+  { name: '🔮 奇幻 / 科幻', nameEn: '🔮 Fantasy / Sci-Fi', items: [
+    ['奇幻风','fantasy, magical','Fantasy'],
+    ['科幻风','sci-fi, futuristic','Sci-fi'],
+    ['赛博朋克','cyberpunk, neon, dystopian','Cyberpunk'],
+    ['蒸汽朋克','steampunk, Victorian mechanical','Steampunk'],
+    ['柴油朋克','dieselpunk, retro-futuristic','Dieselpunk'],
+    ['黑暗风','dark art, moody, grim','Dark art'],
+    ['哥特风','gothic, ornate, dark','Gothic'],
+    ['霓虹灯感','neon glow, synthwave','Neon glow'],
+    ['雾气迷蒙','misty, ethereal fog','Misty'],
+    ['极光感','aurora, iridescent','Aurora'],
+    ['黑色电影','film noir, black and white, shadows','Film noir'],
+    ['剪影风','silhouette, backlit','Silhouette'],
   ]},
-  { name: '🎭 艺术流派', items: [
-    ['写实主义','realism, photorealistic'],
-    ['超写实主义','hyperrealism, ultra-detailed'],
-    ['印象派','impressionism, brush strokes, soft colors'],
-    ['后印象派','post-impressionism, Van Gogh style'],
-    ['表现主义','expressionism, emotional distortion'],
-    ['抽象艺术','abstract art'],
-    ['几何抽象','geometric abstraction'],
-    ['立体主义','cubism, fragmented geometry'],
-    ['未来主义','futurism, dynamic motion lines'],
-    ['达达主义','dadaism, surreal collage'],
-    ['超现实主义','surrealism, dreamlike'],
-    ['野兽派','fauvism, wild colors'],
-    ['浮世绘','ukiyo-e, Japanese woodblock'],
-    ['抽象表现主义','abstract expressionism'],
-    ['硬边绘画','hard-edge painting'],
-    ['半寫实风','semi-realistic'],
+  { name: '🎭 艺术流派', nameEn: '🎭 Art Movements', items: [
+    ['写实主义','realism, photorealistic','Realism'],
+    ['超写实主义','hyperrealism, ultra-detailed','Hyperrealism'],
+    ['印象派','impressionism, brush strokes, soft colors','Impressionism'],
+    ['后印象派','post-impressionism, Van Gogh style','Post-impressionism'],
+    ['表现主义','expressionism, emotional distortion','Expressionism'],
+    ['抽象艺术','abstract art','Abstract art'],
+    ['几何抽象','geometric abstraction','Geometric'],
+    ['立体主义','cubism, fragmented geometry','Cubism'],
+    ['未来主义','futurism, dynamic motion lines','Futurism'],
+    ['达达主义','dadaism, surreal collage','Dadaism'],
+    ['超现实主义','surrealism, dreamlike','Surrealism'],
+    ['野兽派','fauvism, wild colors','Fauvism'],
+    ['浮世绘','ukiyo-e, Japanese woodblock','Ukiyo-e'],
+    ['抽象表现主义','abstract expressionism','Abstract Expressionism'],
+    ['硬边绘画','hard-edge painting','Hard-edge'],
+    ['半寫实风','semi-realistic','Semi-realistic'],
   ]},
-  { name: '🏛️ 设计 / 复古', items: [
-    ['极简主义','minimalism, clean, simple'],
-    ['波普艺术','pop art, bold colors, comic dots'],
-    ['新艺术风','art nouveau, organic curves'],
-    ['装饰艺术','art deco, geometric luxury'],
-    ['包豪斯风','bauhaus, functional geometric'],
-    ['洛可可风','rococo, ornate pastel'],
-    ['苏联构成主义','soviet constructivism, propaganda'],
-    ['拜占庭风格','byzantine, gold mosaic'],
-    ['部落艺术','tribal art, ethnic patterns'],
-    ['复古风','retro, vintage'],
-    ['像素风','pixel art, 8-bit'],
-    ['怀旧像素风','retro pixel, 16-bit nostalgia'],
-    ['材质设计','material design, layered shadows'],
-    ['极繁主义','maximalism, densely detailed'],
-    ['新孟菲斯','neo-memphis, playful patterns'],
-    ['酸性设计','acid design, Y2K aesthetic'],
+  { name: '🏛️ 设计 / 复古', nameEn: '🏛️ Design / Retro', items: [
+    ['极简主义','minimalism, clean, simple','Minimalism'],
+    ['波普艺术','pop art, bold colors, comic dots','Pop art'],
+    ['新艺术风','art nouveau, organic curves','Art Nouveau'],
+    ['装饰艺术','art deco, geometric luxury','Art Deco'],
+    ['包豪斯风','bauhaus, functional geometric','Bauhaus'],
+    ['洛可可风','rococo, ornate pastel','Rococo'],
+    ['苏联构成主义','soviet constructivism, propaganda','Constructivism'],
+    ['拜占庭风格','byzantine, gold mosaic','Byzantine'],
+    ['部落艺术','tribal art, ethnic patterns','Tribal art'],
+    ['复古风','retro, vintage','Retro'],
+    ['像素风','pixel art, 8-bit','Pixel art'],
+    ['怀旧像素风','retro pixel, 16-bit nostalgia','Retro pixel'],
+    ['材质设计','material design, layered shadows','Material Design'],
+    ['极繁主义','maximalism, densely detailed','Maximalism'],
+    ['新孟菲斯','neo-memphis, playful patterns','Neo-Memphis'],
+    ['酸性设计','acid design, Y2K aesthetic','Y2K acid'],
   ]},
-  { name: '🧪 实验 / 街头', items: [
-    ['涂鸦风','graffiti, street art'],
-    ['街头艺术','street art, urban'],
-    ['生成艺术','generative art, procedural'],
-    ['AI绘图风','AI art aesthetic'],
-    ['双重曝光','double exposure'],
-    ['故障艺术','glitch art, digital distortion'],
+  { name: '🧪 实验 / 街头', nameEn: '🧪 Experimental / Street', items: [
+    ['涂鸦风','graffiti, street art','Graffiti'],
+    ['街头艺术','street art, urban','Street art'],
+    ['生成艺术','generative art, procedural','Generative art'],
+    ['AI绘图风','AI art aesthetic','AI art'],
+    ['双重曝光','double exposure','Double exposure'],
+    ['故障艺术','glitch art, digital distortion','Glitch art'],
   ]},
 ];
 
@@ -956,8 +956,9 @@ function loadDemo() {
 // ═════════════════════════════════════════════════════════════
 function renderStyleTabs() {
   const wrap = document.getElementById('style-tabs');
+  const isEn = typeof uiLang !== 'undefined' && uiLang === 'en';
   wrap.innerHTML = STYLE_GROUPS.map((g, i) => `
-    <button class="style-tab ${!searchMode && i === currentGroup ? 'active' : ''}" onclick="pickGroup(${i})">${g.name}</button>
+    <button class="style-tab ${!searchMode && i === currentGroup ? 'active' : ''}" onclick="pickGroup(${i})">${isEn ? (g.nameEn || g.name) : g.name}</button>
   `).join('');
 }
 function pickGroup(i) {
@@ -970,19 +971,21 @@ function pickGroup(i) {
 function renderStyleGrid(filter = '') {
   const wrap = document.getElementById('style-grid');
   const f = filter.trim().toLowerCase();
+  const isEn = typeof uiLang !== 'undefined' && uiLang === 'en';
   let list;
   if (f) {
     searchMode = true;
-    // 搜索全部（去重）
     list = STYLES.filter(([cn, en]) => cn.includes(f) || en.toLowerCase().includes(f));
-    renderStyleTabs(); // 取消 tab 高亮
+    renderStyleTabs();
   } else {
     searchMode = false;
     list = STYLE_GROUPS[currentGroup]?.items || [];
   }
-  wrap.innerHTML = list.map(([cn, en]) => `
-    <div class="style-item ${selectedStyle === en ? 'selected' : ''}" data-en="${escapeAttr(en)}" onclick="pickStyle(this)">${cn}</div>
-  `).join('') || '<div class="hint" style="grid-column:1/-1;text-align:center;padding:20px">无匹配结果</div>';
+  const noMatch = isEn ? 'No matches found' : '无匹配结果';
+  wrap.innerHTML = list.map(([cn, en, enLabel]) => {
+    const label = isEn ? (enLabel || en.split(',')[0].trim()) : cn;
+    return `<div class="style-item ${selectedStyle === en ? 'selected' : ''}" data-en="${escapeAttr(en)}" onclick="pickStyle(this)">${label}</div>`;
+  }).join('') || `<div class="hint" style="grid-column:1/-1;text-align:center;padding:20px">${noMatch}</div>`;
   updateStyleLabel();
 }
 
@@ -1027,10 +1030,12 @@ function syncAllFromCore() {
 function updateStyleLabel() {
   const lbl = document.getElementById('style-selected-label');
   const item = STYLES.find(s => s[1] === selectedStyle);
+  const isEn = typeof uiLang !== 'undefined' && uiLang === 'en';
   if (item) {
-    lbl.innerHTML = `<span class="style-chip-selected">${item[0]}</span> <span style="color:var(--muted);font-size:0.72rem;font-family:monospace">${item[1]}</span>`;
+    const displayName = isEn ? (item[2] || item[1].split(',')[0].trim()) : item[0];
+    lbl.innerHTML = `<span class="style-chip-selected">${displayName}</span> <span style="color:var(--muted);font-size:0.72rem;font-family:monospace">${item[1]}</span>`;
   } else {
-    lbl.innerHTML = '<span style="color:var(--muted)">（未选）</span>';
+    lbl.innerHTML = `<span style="color:var(--muted)">${isEn ? '(none)' : '（未选）'}</span>`;
   }
 }
 document.getElementById('style-search').addEventListener('input', e => renderStyleGrid(e.target.value));
@@ -3655,6 +3660,8 @@ function setUiLang(lang) {
     const v = uiLang === 'en' ? el.getAttribute('data-en-label') : el.getAttribute('data-zh-label');
     if (v) el.label = v;
   });
+  // 风格网格重新渲染（标签语言跟随）
+  try { if (typeof renderStyleTabs === 'function') { renderStyleTabs(); renderStyleGrid(); } } catch(e){}
   // 重新生成 NBM prompt（语言跟随）
   try { if (typeof generateNbmPrompt === 'function') generateNbmPrompt(); } catch(e){}
   // API 状态文字跟随
