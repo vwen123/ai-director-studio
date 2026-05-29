@@ -295,6 +295,7 @@
     white-space: pre-wrap; line-height: 1.6; word-break: break-word; min-height: 60px; margin-top: 8px;
   }
   .prompt-out:empty::before { content: "点「生成」即可产出..."; color: #3a3a5a; font-style: italic; }
+  html[lang="en"] .prompt-out:empty::before { content: "Click Generate to produce output..."; }
 
   /* Tables */
   .table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid var(--border); max-height: 520px; }
@@ -1706,13 +1707,14 @@ function toggleSourceMode() {
 function generateNbmPrompt() {
   const title = document.getElementById('g-title')?.value.trim() || '此课文';
   const n = document.getElementById('g-num-scenes')?.value || 5;
-  const styleCN = (typeof selectedStyle !== 'undefined' && Array.isArray(STYLES))
-    ? (STYLES.find(s => s[1] === selectedStyle)?.[0] || '')
-    : '';
-  const lang = (typeof uiLang !== 'undefined' && uiLang) ? uiLang : 'zh';
+  const isEn = (typeof uiLang !== 'undefined' && uiLang === 'en');
+  const styleItem = (typeof selectedStyle !== 'undefined' && Array.isArray(STYLES))
+    ? STYLES.find(s => s[1] === selectedStyle) : null;
+  const styleCN = styleItem?.[0] || '';
+  const styleEN = styleItem?.[2] || styleItem?.[1]?.split(',')[0]?.trim() || '';
   let p;
-  if (lang === 'en') {
-    const styleLine = styleCN ? `\nOverall visual style: ${styleCN}.` : '';
+  if (isEn) {
+    const styleLine = styleEN ? `\nOverall visual style: ${styleEN}.` : '';
     p = `Based on "${title}", give me an illustration outline for a ${n}-page deck. For each page, use the original source text and present it in storytelling form. List them page by page, and for each page include a "Original story text" line followed by an "Illustration suggestion".${styleLine}`;
   } else {
     const styleLine = styleCN ? `\n整体视觉风格：${styleCN}。` : '';
@@ -1757,15 +1759,16 @@ function downloadSpecialsTxt() {
   const back  = (document.getElementById('cover-back')?.textContent || '').trim();
   const music = (document.getElementById('music-out')?.textContent || '').trim();
   const sep = '\n\n' + '─'.repeat(60) + '\n\n';
-  const parts = [`《${title}》— 封面 / 封底 / 背景音乐 Prompts`];
-  if (author) parts.push(`作者：${author}`);
-  if (front)  parts.push(sep + '🖼️ 封面剧照 Prompt' + sep + front);
-  if (back)   parts.push(sep + '🖼️ 封底剧照 Prompt' + sep + back);
-  if (music)  parts.push(sep + '🎵 背景音乐 Prompt' + sep + music);
+  const isEnDl = typeof uiLang !== 'undefined' && uiLang === 'en';
+  const parts = [isEnDl ? `"${title}" — Cover / Back Cover / BGM Prompts` : `《${title}》— 封面 / 封底 / 背景音乐 Prompts`];
+  if (author) parts.push(isEnDl ? `Author: ${author}` : `作者：${author}`);
+  if (front)  parts.push(sep + T('coverFrontLabel') + sep + front);
+  if (back)   parts.push(sep + T('coverBackLabel') + sep + back);
+  if (music)  parts.push(sep + T('musicLabel') + sep + music);
   const blob = new Blob([parts.join('\n')], { type: 'text/plain;charset=utf-8' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `${title}_封面封底背景音乐.txt`;
+  a.download = isEnDl ? `${title}_cover_back_bgm.txt` : `${title}_封面封底背景音乐.txt`;
   document.body.appendChild(a); a.click();
   setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 0);
 }
@@ -1832,7 +1835,7 @@ function autoFromText(n) {
 function autoFromTitle(n) {
   const title = document.getElementById('g-title').value.trim();
   const theme = document.getElementById('g-theme').value.trim();
-  if (!title && !theme) { showToast('请先填写标题或主题'); return; }
+  if (!title && !theme) { showToast(T('needTitle')); return; }
   const subject = title || '主角';
   const stories = buildArcTemplate(subject, theme, n);
   applyAutoScenes(stories);
@@ -1897,8 +1900,19 @@ function shrinkText(t, target) {
   if (t.length <= target) return t;
   return t.slice(0, target - 1) + '…';
 }
+// 场次前缀：中文「第N幕：」/ 英文「Scene N: 」
+function sceneLabel(i) {
+  return (typeof uiLang !== 'undefined' && uiLang === 'en')
+    ? `Scene ${i + 1}: `
+    : `第${i + 1}幕：`;
+}
 // 为「丰富」模式附加情境句
 function richTail(i, n) {
+  if (typeof uiLang !== 'undefined' && uiLang === 'en') {
+    const open  = ['In this moment, ', 'Meanwhile, ', 'Shortly after, ', 'Then, ', 'Unexpectedly, '];
+    const close = ['the atmosphere was electric.', 'the scene was breathtaking.', 'the story took a turn.', 'it left a lasting impression.', 'everyone was moved.'];
+    return `${open[i % open.length]}${close[i % close.length]}`;
+  }
   const open  = ['在这一刻，', '与此同时，', '不久之后，', '接着，', '没想到，'];
   const close = ['气氛格外动人。', '画面令人屏息。', '故事悄然转折。', '留下深刻回响。', '众人心头一震。'];
   return `${open[i % open.length]}${close[i % close.length]}`;
@@ -1937,12 +1951,11 @@ function generateNarration() {
       }
     }
     let lines;
+    const isEn = typeof uiLang !== 'undefined' && uiLang === 'en';
     if (narrationLen === 'rich') {
-      // 生动旁白：在原文基础上添加情境过渡句
-      lines = buckets.map((b, i) => `第${i+1}幕：${b.replace(/\s+/g,'')}${richTail(i, buckets.length)}`);
+      lines = buckets.map((b, i) => `${sceneLabel(i)}${b.replace(/\s+/g, isEn ? ' ' : '')}${richTail(i, buckets.length)}`);
     } else {
-      // 原文旁白：原文逐幕分配
-      lines = buckets.map((b, i) => `第${i+1}幕：${b.replace(/\s+/g,'')}`);
+      lines = buckets.map((b, i) => `${sceneLabel(i)}${b.replace(/\s+/g, isEn ? ' ' : '')}`);
     }
     out.value = lines.join(narrationLen === 'rich' ? '\n\n' : '\n');
     save();
@@ -1950,35 +1963,42 @@ function generateNarration() {
   }
 
   // ── B. 仅标题模式：基于分镜 story 生成 ──
+  const isEnB = typeof uiLang !== 'undefined' && uiLang === 'en';
   if (scenes.length === 0) {
-    // 还没分镜 — 用模板
-    const subject = title || '主角';
+    const subject = title || (isEnB ? 'protagonist' : '主角');
     const stories = buildArcTemplate(subject, theme, n);
     const lines = stories.map((s, i) => {
-      if (narrationLen === 'rich') return `第${i+1}幕：${s}${richTail(i, n)}`;
-      return `第${i+1}幕：${s}`;
+      if (narrationLen === 'rich') return `${sceneLabel(i)}${s}${richTail(i, n)}`;
+      return `${sceneLabel(i)}${s}`;
     });
-    const intro = theme ? theme.replace(/[。.]$/, '') + '。' : `《${title}》的故事这样展开：`;
+    const intro = isEnB
+      ? (theme ? theme.replace(/[.。]$/, '') + '.' : `The story of "${title}" unfolds:`)
+      : (theme ? theme.replace(/[。.]$/, '') + '。' : `《${title}》的故事这样展开：`);
     out.value = intro + (narrationLen === 'rich' ? '\n\n' : '\n') + lines.join(narrationLen === 'rich' ? '\n\n' : '\n');
     save();
     return;
   }
 
-  const intro = theme ? theme.replace(/[。.]$/, '') + '。' : `《${title}》的故事这样展开：`;
+  const isEnC = typeof uiLang !== 'undefined' && uiLang === 'en';
+  const intro = isEnC
+    ? (theme ? theme.replace(/[.。]$/, '') + '.' : `The story of "${title}" unfolds:`)
+    : (theme ? theme.replace(/[。.]$/, '') + '。' : `《${title}》的故事这样展开：`);
   const lines = scenes.map((s, i) => {
     const story = (s.story || '').trim();
-    if (narrationLen === 'rich') return `第${i+1}幕：${story}${richTail(i, scenes.length)}`;
-    return `第${i+1}幕：${story}`;
+    if (narrationLen === 'rich') return `${sceneLabel(i)}${story}${richTail(i, scenes.length)}`;
+    return `${sceneLabel(i)}${story}`;
   });
   out.value = intro + (narrationLen === 'rich' ? '\n\n' : '\n') + lines.join(narrationLen === 'rich' ? '\n\n' : '\n');
   save();
 }
+// 统一剥离场次前缀（中文「第X幕：」或英文「Scene X:」）
+const SCENE_PREFIX_RE = /^\s*(?:第[一二三四五六七八九十百千0-9]+[幕页][：:]\s*|Scene\s+\d+\s*:\s*)/i;
 // 从旁白框提取"故事原文"主干（去除第X幕前缀）
 function _storySource() {
   const raw = (document.getElementById('narration-out')?.value || '').trim();
   if (!raw) return '';
   return raw.split('\n')
-    .map(l => l.replace(/^\s*第[一二三四五六七八九十百千0-9]+[幕页][：:]\s*/, '').trim())
+    .map(l => l.replace(SCENE_PREFIX_RE, '').trim())
     .filter(Boolean)
     .join(' ');
 }
@@ -1987,7 +2007,7 @@ function _storyOpening() {
   const raw = (document.getElementById('narration-out')?.value || '').trim();
   if (!raw) return '';
   const first = raw.split('\n').find(l => l.trim());
-  return (first || '').replace(/^\s*第[一二三四五六七八九十百千0-9]+[幕页][：:]\s*/, '').trim();
+  return (first || '').replace(SCENE_PREFIX_RE, '').trim();
 }
 // 旁白末幕（收束）用于封底
 function _storyEnding() {
@@ -1995,7 +2015,7 @@ function _storyEnding() {
   if (!raw) return '';
   const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
   const last = lines[lines.length - 1] || '';
-  return last.replace(/^\s*第[一二三四五六七八九十百千0-9]+[幕页][：:]\s*/, '').trim();
+  return last.replace(SCENE_PREFIX_RE, '').trim();
 }
 
 // 根据故事原文推断情绪关键词
@@ -2033,8 +2053,15 @@ function generateCover(which) {
   const source = _storySource();
   const opening = _storyOpening();
   const ending = _storyEnding();
-  const styleCn = (Array.isArray(STYLES) ? STYLES.find(s => s[1] === selectedStyle)?.[0] : '') || '';
-  const styleTag = styleCn ? `视觉风格：${styleCn}（${selectedStyle}）` : selectedStyle;
+  const styleItem2 = Array.isArray(STYLES) ? STYLES.find(s => s[1] === selectedStyle) : null;
+  const styleCn = styleItem2?.[0] || '';
+  const isEnCover = typeof uiLang !== 'undefined' && uiLang === 'en';
+  const styleTag = isEnCover
+    ? selectedStyle
+    : (styleCn ? `视觉风格：${styleCn}（${selectedStyle}）` : selectedStyle);
+  const authorAttr = author
+    ? (isEnCover ? `"by ${author}" displayed at bottom-right in small clean serif text` : `"作者：${author}" displayed at bottom-right in small clean serif text`)
+    : '';
   const keywords = _storyKeywords(source);
   const moodTag = _inferStoryMood(source);
 
@@ -2046,7 +2073,7 @@ function generateCover(which) {
       keywords ? `key story imagery: ${keywords}` : '',
       moodTag ? `mood: ${moodTag}` : '',
       `title "${title}" displayed at top-left in elegant typography`,
-      author ? `"作者：${author}" displayed at bottom-right in small clean serif text` : '',
+      authorAttr,
       tail,
       '16:9, dramatic composition, key art quality, faithful to the original story content and visual style',
     ].filter(Boolean).join(', ');
@@ -2059,7 +2086,7 @@ function generateCover(which) {
       keywords ? `key story imagery: ${keywords}` : '',
       moodTag ? `mood: ${moodTag}` : '',
       `title "${backTitle}" displayed at top-center in elegant typography`,
-      author ? `"作者：${author}" displayed at bottom-right in small clean serif text` : '',
+      authorAttr,
       tail,
       '16:9, warm resolution mood, faithful to the original story content and visual style',
     ].filter(Boolean).join(', ');
@@ -2101,20 +2128,20 @@ function onApiKeyChange(v) {
   if (!v) {
     document.body.classList.remove('ai-ready');
     statusEl.className = 'api-status api-off';
-    statusEl.textContent = '○ 未启用';
+    statusEl.textContent = T('apiOff');
     showKeyField();
     return;
   }
   if (v.length < 20) {
     statusEl.className = 'api-status api-off';
-    statusEl.textContent = '○ Key 长度不足';
+    statusEl.textContent = T('apiKeyShort');
     document.body.classList.remove('ai-ready');
     return;
   }
   // 简单启用（不强制在线验证，避免阻塞 UI）
   document.body.classList.add('ai-ready');
   statusEl.className = 'api-status api-on';
-  statusEl.textContent = '● AI 已开启';
+  statusEl.textContent = T('aiEnabled');
 }
 
 // 输入完成（失焦）后自动折叠：只显示掩码 + 修改按钮
@@ -2155,7 +2182,7 @@ const MIN_GAP_MS = { 'gemini-2.5-flash-preview-tts': 6500, 'gemini-2.5-flash-tts
 
 async function callGemini(model, body, opts = {}) {
   const key = getApiKey();
-  if (!key) throw new Error('请先在顶部填入 Gemini API Key');
+  if (!key) throw new Error(T('needApiKeyFull'));
   // 节流等待
   const gap = MIN_GAP_MS[model] || 3000;
   const since = Date.now() - (__geminiLastCall[model] || 0);
@@ -2203,7 +2230,7 @@ async function aiSuggestVoice() {
   const source = document.getElementById('g-source-text').value.trim().slice(0, 600);
   const narration = document.getElementById('narration-out').value.trim().slice(0, 400);
   if (!title && !theme && !source && !narration) {
-    showToast('请先填写标题或主题'); return;
+    showToast(T('needTitle')); return;
   }
   status.textContent = '⏳ AI 分析中...';
   try {
@@ -2256,7 +2283,7 @@ ${voiceList}
 async function aiPolishNarration() {
   const status = document.getElementById('ai-suggest-status');
   const current = document.getElementById('narration-out').value.trim();
-  if (!current) { showToast('请先生成旁白'); return; }
+  if (!current) { showToast(T('needNarration')); return; }
   status.textContent = '⏳ AI 润色中...';
   try {
     const prompt = `你是一位儿童教学视频旁白写手。请把下面的旁白润色得更生动、更有画面感，但保持每幕「第N幕：」的结构、字数相近。中文输出，只输出润色后的旁白文字，不要任何前后说明。
@@ -2282,14 +2309,14 @@ ${current}`;
 //  AI 生成角色 · 根据标题/主题/课文推导人设与外观锚点
 // ═════════════════════════════════════════════════════════════
 async function aiGenerateCharacters() {
-  if (!getApiKey()) { showToast('请先在顶部填入 API Key'); return; }
+  if (!getApiKey()) { showToast(T('needApiKeyFull')); return; }
   if (characters.length > 0 && !confirm(`将替换当前 ${characters.length} 个角色，确认？`)) return;
   const status = document.getElementById('ai-char-status');
   const title = document.getElementById('g-title').value.trim();
   const theme = document.getElementById('g-theme').value.trim();
   const source = document.getElementById('g-source-text').value.trim().slice(0, 1500);
   const styleCN = (STYLES.find(s => s[1] === selectedStyle)?.[0]) || '';
-  if (!title && !theme && !source) { showToast('请先填写标题或贴课文'); return; }
+  if (!title && !theme && !source) { showToast(T('needTitleOrSource')); return; }
 
   status.textContent = '⏳ AI 设定角色中...';
   try {
@@ -2333,7 +2360,7 @@ ${source ? '课文原文：\n' + source : ''}
 //  AI 生成分镜 · 依内容 + 角色 + 风格产出 N 幕完整分镜
 // ═════════════════════════════════════════════════════════════
 async function aiGenerateScenes() {
-  if (!getApiKey()) { showToast('请先在顶部填入 API Key'); return; }
+  if (!getApiKey()) { showToast(T('needApiKeyFull')); return; }
   if (scenes.length > 0 && !confirm(`将替换当前 ${scenes.length} 幕分镜，确认？`)) return;
   const n = Math.max(2, Math.min(12, parseInt(document.getElementById('g-num-scenes').value) || 5));
   const status = document.getElementById('ai-scene-status');
@@ -2343,7 +2370,7 @@ async function aiGenerateScenes() {
   const styleCN = (STYLES.find(s => s[1] === selectedStyle)?.[0]) || '';
   const charList = characters.map(c => `${c.name}: ${c.desc}`).join('\n');
 
-  if (!title && !theme && !source) { showToast('请先填写标题或贴课文'); return; }
+  if (!title && !theme && !source) { showToast(T('needTitleOrSource')); return; }
 
   status.textContent = '⏳ AI 编剧中，生成 ' + n + ' 幕分镜...';
   try {
@@ -2416,7 +2443,7 @@ ${source ? '\n课文原文：\n' + source : ''}
 // ═════════════════════════════════════════════════════════════
 const __voiceSampleCache = {}; // {voice_style -> blobUrl}
 async function testVoice() {
-  if (!getApiKey()) { showToast('请先在顶部填入 API Key'); return; }
+  if (!getApiKey()) { showToast(T('needApiKeyFull')); return; }
   const voice = document.getElementById('gemini-voice').value;
   const style = document.getElementById('gemini-style').value.trim();
   const cacheKey = voice + '|' + style;
@@ -2494,9 +2521,9 @@ function b64ToBytes(b64) {
 }
 
 async function geminiTTSGenerate() {
-  if (!getApiKey()) { showToast('请先在顶部填入 Gemini API Key'); return; }
+  if (!getApiKey()) { showToast(T('needApiKeyFull')); return; }
   const text = document.getElementById('narration-out').value.trim();
-  if (!text) { showToast('请先生成旁白'); return; }
+  if (!text) { showToast(T('needNarration')); return; }
   const voice = document.getElementById('gemini-voice').value;
   const style = document.getElementById('gemini-style').value.trim();
   const status = document.getElementById('tts-status');
@@ -2505,12 +2532,12 @@ async function geminiTTSGenerate() {
   // 去除「第 N 幕：」前缀；幕间加三个换行产生明显停顿，供 Whisper 检测切点
   const cleanText = text
     .split('\n')
-    .map(ln => ln.replace(/^\s*第[一二三四五六七八九十百千0-9]+[幕页][：:]\s*/, '').trim())
+    .map(ln => ln.replace(SCENE_PREFIX_RE, '').trim())
     .filter(ln => ln)
     .join('\n\n\n')   // 三换行 → 幕间产生较长停顿
     .trim();
   const prompt = style ? `${style}：\n${cleanText}` : cleanText;
-  status.innerHTML = `⏳ 生成语音中（${voice}）...`;
+  status.innerHTML = `${T('ttsGenerating')}（${voice}）...`;
   document.getElementById('tts-to-srt-btn').style.display = 'none';
   document.getElementById('tts-download-btn').style.display = 'none';
   player.style.display = 'none';
@@ -2546,11 +2573,11 @@ async function geminiTTSGenerate() {
 async function browserTTSGenerate() {
   if (!('speechSynthesis' in window)) { showToast('浏览器不支持语音合成'); return; }
   const text = document.getElementById('narration-out').value.trim();
-  if (!text) { showToast('请先生成旁白'); return; }
+  if (!text) { showToast(T('needNarration')); return; }
   const status = document.getElementById('tts-status');
   const player = document.getElementById('tts-player');
   const cleanText = text.split('\n')
-    .map(ln => ln.replace(/^\s*第[一二三四五六七八九十百千0-9]+[幕页][：:]\s*/, ''))
+    .map(ln => ln.replace(SCENE_PREFIX_RE, ''))
     .join('\n').trim();
 
   status.innerHTML = `⏳ 浏览器语音合成中（免费，无配额限制）...`;
@@ -2777,26 +2804,23 @@ function splitLongText(text, maxLen = 18) {
   return parts.filter(Boolean);
 }
 
-// 把旁白文本按「第N幕：」切成 N 段，去掉前缀
+// 把旁白文本按「第N幕：/ Scene N:」切成 N 段，去掉前缀
 function parseNarrationScenes(text, n) {
   const lines = text.split('\n').map(s => s.trim()).filter(Boolean);
   const buckets = [];
   for (const ln of lines) {
-    const m = ln.match(/^第[一二三四五六七八九十百千0-9]+[幕页][：:]\s*(.*)$/);
+    const m = ln.match(/^(?:第[一二三四五六七八九十百千0-9]+[幕页][：:]\s*|Scene\s+\d+\s*:\s*)(.*)/i);
     if (m) {
       buckets.push(m[1]);
     } else if (buckets.length) {
       buckets[buckets.length - 1] += ln;
     } else {
-      // 开头有引言/主题句 — 先暂存，若后面有幕标记则并入第一幕
       buckets.push(ln);
     }
   }
-  // 旁白里已有「第X幕」标记就以其为准（无论是不是 n 幕）
   const marked = buckets.filter(Boolean);
   if (marked.length >= 2) return marked;
-  // 否则退回：按原文均分为 n 段
-  const plain = text.replace(/第[一二三四五六七八九十百千0-9]+[幕页][：:]/g, '').replace(/\s+/g, '');
+  const plain = text.replace(/(?:第[一二三四五六七八九十百千0-9]+[幕页][：:]|Scene\s+\d+\s*:)/gi, '').replace(/\s+/g, '');
   const per = Math.ceil(plain.length / n);
   const out = [];
   for (let i = 0; i < n; i++) out.push(plain.slice(i*per, (i+1)*per));
@@ -3566,6 +3590,16 @@ const I18N = {
     toneNostalgicVal: '怀念感性地诉说，带一点温柔与淡淡忧愁',
     tonePlayfulVal: '俏皮调皮地说话，语气夸张有戏，像卡通角色',
     copied: '已复制 ✓', emptyContent: '内容为空',
+    apiKeyShort: '○ Key 长度不足', aiEnabled: '● AI 已开启',
+    ttsGenerating: '⏳ 生成语音中',
+    needNarration: '请先生成旁白',
+    needTitle: '请先填写标题或主题',
+    needApiKeyFull: '请先在顶部填入 Gemini API Key',
+    needTitleOrSource: '请先填写标题或贴课文',
+    coverFrontLabel: '🖼️ 封面剧照 Prompt',
+    coverBackLabel: '🖼️ 封底剧照 Prompt',
+    musicLabel: '🎵 背景音乐 Prompt',
+    downloadTitle: (t) => `《${t}》— 封面 / 封底 / 背景音乐 Prompts`,
   },
   en: {
     appTitle: 'AI Animation Video Studio',
@@ -3625,6 +3659,15 @@ const I18N = {
     toneNostalgicVal: 'nostalgic and emotional, gentle with a faint touch of melancholy',
     tonePlayfulVal: 'playful and cheeky, exaggerated like a cartoon character',
     copied: 'Copied ✓', emptyContent: 'Nothing to copy',
+    apiKeyShort: '○ Key too short', aiEnabled: '● AI enabled',
+    ttsGenerating: '⏳ Generating voice',
+    needNarration: 'Please generate narration first',
+    needTitle: 'Please enter a title or topic first',
+    needApiKeyFull: 'Please enter your Gemini API Key at the top first',
+    needTitleOrSource: 'Please enter a title or paste source text first',
+    coverFrontLabel: '🖼️ Cover Still Prompt',
+    coverBackLabel: '🖼️ Back Cover Still Prompt',
+    musicLabel: '🎵 Background Music Prompt',
   }
 };
 function setTonePreset(key) {
@@ -3736,8 +3779,8 @@ function parseNbmAndBuildNarration() {
     showToast(T('parsedEmpty'));
     return;
   }
-  // 填入旁白框：第X幕：原文
-  const narrLines = extracted.map((t, i) => `第${i+1}幕：${t}`);
+  // 填入旁白框：Scene X: / 第X幕：原文
+  const narrLines = extracted.map((t, i) => `${sceneLabel(i)}${t}`);
   const out = document.getElementById('narration-out');
   if (out) {
     out.value = narrLines.join('\n');
