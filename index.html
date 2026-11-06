@@ -397,7 +397,7 @@
 </div>
 
 <!-- Gemini API Key · 全局配置（开启 Gemini TTS 生成旁白语音） -->
-<div class="api-bar">
+<div class="api-bar" style="display:none">
   <div class="api-bar-inner">
     <span class="api-icon">🔑</span>
     <span class="api-label" data-i18n="apiKeyLabel">Gemini API Key</span>
@@ -503,7 +503,12 @@
     </div>
 
     <!-- 📥 贴入 NotebookLM 生成的大纲，自动抽取「故事原文」生成旁白 -->
-    <div style="padding:14px;background:var(--phase-inner-2);border:1px dashed var(--phase-accent-solid);border-radius:10px">
+    <div style="padding:14px;background:var(--phase-inner-2);border:1px dashed var(--phase-accent-solid);border-radius:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <strong style="color:var(--phase-accent);font-size:0.9rem" data-i18n="studioTitle">🎤 语音生成：到 Google AI Studio 生成，下载音档后在下方转字幕</strong>
+      <div style="flex:1"></div>
+      <a class="btn btn-primary btn-sm" href="https://aistudio.google.com/generate-speech" target="_blank" style="text-decoration:none" data-i18n="studioBtn">🌐 打开 Google AI Studio</a>
+    </div>
+    <div style="display:none">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
         <strong style="color:var(--phase-accent);font-size:0.9rem" data-i18n="nbmPasteTitle">📥 贴入 NotebookLM 回传的大纲</strong>
         <div style="flex:1"></div>
@@ -575,6 +580,7 @@
 
     <!-- 🎙️ 语音 + 字幕 -->
     <div class="extra-block" id="extra-voice" style="display:none">
+      <div style="display:none">
       <div class="extra-head">
         <span class="extra-title"><span class="emoji">🎙️</span><span data-i18n="narrTitle">旁白文案</span></span>
         <div class="btn-row">
@@ -664,7 +670,8 @@
         <audio id="tts-player" controls style="display:none;width:100%;margin-top:10px"></audio>
       </div>
 
-      <div style="margin-top:14px;padding-top:14px;border-top:1px dashed var(--phase-accent-solid)">
+      </div>
+      <div>
         <div class="extra-head">
           <span class="extra-title"><span class="emoji">🎧</span><span data-i18n="srtTitle">语音转 SRT 字幕（上传既有录音）</span></span>
           <div class="btn-row">
@@ -675,7 +682,7 @@
         </div>
         <div class="row-flex" style="margin-top:10px;gap:14px;flex-wrap:wrap">
           <input type="file" id="audio-upload" accept="audio/*" onchange="handleAudioUpload(event)">
-          <label style="display:inline-flex;align-items:center;gap:6px;font-size:0.82rem;color:var(--fg);cursor:pointer">
+          <label style="display:none">
             <input type="checkbox" id="srt-use-text" checked style="width:16px;height:16px">
             <span data-i18n="srtUseText">📖 用旁白文本校正</span>
           </label>
@@ -3557,7 +3564,8 @@ const I18N = {
     voiceToggle: '🎙️ 生成语音 + 字幕',
     coverToggle: '🖼️ 封面 / 封底', musicToggle: '🎵 背景音乐',
     section2Num: '2', section2Title: '🎙️ 语音 · 字幕',
-    section2Desc: '贴入大纲 → 一键转语音',
+    section2Desc: 'AI Studio 生成语音 → 上传音档转字幕',
+    studioTitle: '🎤 语音生成：到 Google AI Studio 生成，下载音档后在下方转字幕', studioBtn: '🌐 打开 Google AI Studio',
     section3Num: '',
     coverAuthorLabel: '作者署名',
     coverAuthorPh: '输入名字',
@@ -3627,7 +3635,8 @@ const I18N = {
     voiceToggle: '🎙️ Generate voice + subtitles',
     coverToggle: '🖼️ Cover / Back cover', musicToggle: '🎵 Background music',
     section2Num: '2', section2Title: '🎙️ Voice · Subtitles',
-    section2Desc: 'Paste outline → One-click TTS',
+    section2Desc: 'Generate voice in AI Studio → upload audio for subtitles',
+    studioTitle: '🎤 Voice: generate it in Google AI Studio, download the audio, then convert to subtitles below', studioBtn: '🌐 Open Google AI Studio',
     section3Num: '',
     coverAuthorLabel: 'Author',
     coverAuthorPh: 'Enter name',
