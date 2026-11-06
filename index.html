@@ -475,11 +475,21 @@
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
         <strong style="color:var(--phase-accent);font-size:0.9rem" data-i18n="nbmPanelTitle">📘 NotebookLM 指令生成</strong>
       </div>
-      <div class="btn-row" style="margin-bottom:10px">
-        <button class="btn btn-primary btn-sm" onclick="generateNbmPrompt()" data-i18n="nbmGenBtn">⚡ 生成 NotebookLM Prompt</button>
-        <button class="btn btn-green btn-sm" onclick="copyText(document.getElementById('nbm-out').textContent)" data-i18n="nbmCopyBtn">📋 复制给 NotebookLM</button>
+      <div class="nbm-step" style="margin-top:10px">
+        <div style="display:flex;align-items:center;gap:8px"><strong style="font-size:0.85rem">①</strong><div style="flex:1"></div>
+          <button class="btn btn-green btn-sm" onclick="copyText(document.getElementById('nbm-out').textContent)" data-i18n="nbmCopyBtn">📋 复制给 NotebookLM</button></div>
+        <div class="prompt-out" id="nbm-out" style="margin-top:6px;font-size:0.85rem;white-space:pre-wrap"></div>
       </div>
-      <div class="prompt-out" id="nbm-out" style="margin-top:10px;font-size:0.85rem;min-height:140px;white-space:pre-wrap"></div>
+      <div class="nbm-step" style="margin-top:12px">
+        <div style="display:flex;align-items:center;gap:8px"><strong style="font-size:0.85rem">②</strong><div style="flex:1"></div>
+          <button class="btn btn-green btn-sm" onclick="copyText(document.getElementById('nbm-out-2').textContent)" data-i18n="nbmCopyBtn">📋 复制给 NotebookLM</button></div>
+        <div class="prompt-out" id="nbm-out-2" style="margin-top:6px;font-size:0.85rem;white-space:pre-wrap"></div>
+      </div>
+      <div class="nbm-step" style="margin-top:12px">
+        <div style="display:flex;align-items:center;gap:8px"><strong style="font-size:0.85rem">③</strong><div style="flex:1"></div>
+          <button class="btn btn-green btn-sm" onclick="copyText(document.getElementById('nbm-out-3').textContent)" data-i18n="nbmCopyBtn">📋 复制给 NotebookLM</button></div>
+        <div class="prompt-out" id="nbm-out-3" style="margin-top:6px;font-size:0.85rem;white-space:pre-wrap"></div>
+      </div>
     </div>
 
     <!-- 以下为兼容脚本而保留的隐藏字段（镜头/光影/质感已按需求移除） -->
@@ -1729,6 +1739,14 @@ function generateNbmPrompt() {
   }
   const out = document.getElementById('nbm-out');
   if (out) out.textContent = p;
+  const CN_NUM = ['零','一','二','三','四','五','六','七','八','九','十','十一','十二'];
+  const nCN = CN_NUM[parseInt(n)] || n;
+  const p2 = isEn ? `Turn these illustration suggestions into detailed image-generation prompts.${styleEN ? `\nOverall visual style: ${styleEN}.` : ''}`
+                  : `把这些插图建议整理成详细的图像生成 Prompt${styleCN ? `\n整体视觉风格：${styleCN}。` : ''}`;
+  const p3 = isEn ? `Give me the narration script for these ${n} pages.`
+                  : `给我这${nCN}页的旁白文案`;
+  const o2 = document.getElementById('nbm-out-2'); if (o2) o2.textContent = p2;
+  const o3 = document.getElementById('nbm-out-3'); if (o3) o3.textContent = p3;
 }
 
 function toggleExtra(type) {
@@ -3549,7 +3567,7 @@ const I18N = {
     styleHeader: '🎨 视觉风格',
     styleSearchPh: '🔍 搜索全部风格...',
     styleSelected: '已选：', styleNone: '（未选，请点击上方选择）',
-    nbmPanelTitle: '📘 NotebookLM 指令生成',
+    nbmPanelTitle: '📘 NotebookLM 指令（按顺序复制）',
     nbmPanelDesc: '把下面的 Prompt 复制到 NotebookLM，让它根据你上传的课文产出分镜插图大纲',
     nbmGenBtn: '⚡ 生成 NotebookLM Prompt', nbmCopyBtn: '📋 复制给 NotebookLM',
     nbmHint: '💡 NotebookLM 会自动依据你上传的课文素材，给出 N 页简报插图建议',
@@ -3620,7 +3638,7 @@ const I18N = {
     styleHeader: '🎨 Visual style',
     styleSearchPh: '🔍 Search all styles...',
     styleSelected: 'Selected:', styleNone: '(none — click a style above)',
-    nbmPanelTitle: '📘 Generate NotebookLM Prompt',
+    nbmPanelTitle: '📘 NotebookLM prompts (copy in order)',
     nbmPanelDesc: 'Copy the prompt below into NotebookLM — it will produce an illustrated outline from your source',
     nbmGenBtn: '⚡ Generate NotebookLM Prompt', nbmCopyBtn: '📋 Copy for NotebookLM',
     nbmHint: '💡 NotebookLM will produce an N-page illustration outline from your uploaded source',

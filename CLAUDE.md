@@ -311,3 +311,8 @@ m.forEach((s,i) => {
 - 隐藏（`display:none`，DOM 保留避免 JS 取不到元素报错）：贴大纲/解析旁白、旁白文案、Gemini TTS 声线语气、顶部 API Key 栏、「用旁白文本校正」勾选
 - 没有旁白时，上传音档转字幕自动按幕数均分切割
 - 线上：ai-director-studio-plum.vercel.app（push main 即自动部署）
+
+### 第十三阶段 · NotebookLM 三段 prompt（2026-11-06）
+用户原话：「复制给notebooklm的多加几个 生成prompt就去掉」「2.把这些插图建议整理成详细的图像生成 Prompt」「3 给我这五页的旁白文案」「自动选入选的视觉风格」
+- 去掉「⚡ 生成 NotebookLM Prompt」按钮（改标题/风格/幕数本来就自动更新，幕数有 800ms 延迟）
+- 三张卡各有复制键：① 插图建议大纲（`nbm-out`）② 整理成图像生成 Prompt＋视觉风格（`nbm-out-2`）③ 给我这N页的旁白文案（`nbm-out-3`，中文数字跟幕数）
