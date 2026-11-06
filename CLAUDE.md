@@ -302,3 +302,12 @@ m.forEach((s,i) => {
 6. **音频解码限制** —— `AudioContext({ sampleRate: 16000 })` 在某些 Safari 版本有限制；遇到失败建议改用 Chrome。
 7. **旁白幕数 vs g-num-scenes** —— 一切按旁白里的「第X幕」实际数量为准，顶部输入框只是 NBM Prompt 用。
 8. **bfcache / form autofill** —— 浏览器会保留 textarea 内容跨刷新；resetAll 显式清后再 reload。
+
+---
+
+### 第十二阶段 · 区块 2 精简（2026-11-06）
+用户原话：「语音转字幕和旁白文案这个部分删除」「语音生成 直接用ai studio就好 不需要api，旁白也不需要」「语音转 SRT 字幕（上传音档）要哦」
+- 区块 2 只剩：🌐 打开 Google AI Studio 按钮 + 🎧 语音转 SRT 字幕（上传音档）
+- 隐藏（`display:none`，DOM 保留避免 JS 取不到元素报错）：贴大纲/解析旁白、旁白文案、Gemini TTS 声线语气、顶部 API Key 栏、「用旁白文本校正」勾选
+- 没有旁白时，上传音档转字幕自动按幕数均分切割
+- 线上：ai-director-studio-plum.vercel.app（push main 即自动部署）
