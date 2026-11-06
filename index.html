@@ -597,7 +597,6 @@
           <button class="btn btn-green btn-sm" onclick="copyText(document.getElementById('narration-out').value)" title="复制 / Copy">📋</button>
         </div>
       </div>
-      <textarea id="narration-out" rows="6" style="margin-top:8px" data-i18n-ph="narrPh" placeholder="旁白将自动产出，可手动编辑"></textarea>
 
       <!-- 🎤 Gemini TTS 直接生成语音 -->
       <div style="margin-top:14px;padding:12px;background:var(--phase-inner-2);border-radius:8px;border:1px dashed var(--phase-accent-solid)">
@@ -691,6 +690,10 @@
           </div>
         </div>
         <div class="row-flex" style="margin-top:10px;gap:14px;flex-wrap:wrap">
+          <div style="width:100%">
+            <label style="font-size:0.82rem" data-i18n="narrPasteLabel">📝 贴上旁白文案（可选，每幕以「第1页：」开头；贴了就按内容切，不贴就按幕数平均切）</label>
+            <textarea id="narration-out" rows="6" style="margin-top:6px" data-i18n-ph="narrPh" placeholder="第1页：……&#10;第2页：……"></textarea>
+          </div>
           <input type="file" id="audio-upload" accept="audio/*" onchange="handleAudioUpload(event)">
           <label style="display:none">
             <input type="checkbox" id="srt-use-text" checked style="width:16px;height:16px">
@@ -2730,6 +2733,7 @@ async function handleAudioUpload(e) {
       stride_length_s: 5,
     });
 
+    __curAudio = audio;
     const rawChunks = result.chunks || [];
     lastRawChunks = rawChunks;             // 保存原始 Whisper 停顿时间，供切割使用
     let chunks = rawChunks.slice();
@@ -2755,16 +2759,32 @@ async function handleAudioUpload(e) {
     }
     // 若未用旁白校正，再按均分方式给 chunk 打上幕索引
     if (!usedCorrection) {
-      const points = computeSplitPoints(totalSec, n, chunks);
-      chunks = chunks.map(c => {
-        const mid = ((c.timestamp?.[0] || 0) + (c.timestamp?.[1] || 0)) / 2;
-        let sceneIdx = 0;
-        for (let i = 0; i < points.length - 1; i++) {
-          if (mid >= points[i] && mid < points[i+1]) { sceneIdx = i; break; }
-          if (i === points.length - 2 && mid >= points[i+1]) sceneIdx = i;
-        }
-        return { ...c, sceneIdx };
+      // 没贴旁白：按幕数平均切（再对准停顿），每幕一条字幕；
+      // Whisper 每段文字按时间重叠比例分给各幕，避免 Whisper 只回一整段时只切出 1 幕
+      let prevEnd = 0;
+      const clean = chunks.map((c, i) => {
+        let a = c.timestamp?.[0], b = c.timestamp?.[1];
+        if (b == null || b > totalSec) b = (i === chunks.length - 1) ? totalSec : (chunks[i+1]?.timestamp?.[0] ?? totalSec);
+        if (a == null || a >= b) a = prevEnd;
+        // Whisper 偶尔给出不合理的开始时间（如整段 39 秒却标在第 39 秒开始）：时长太短就往前补
+        const nChars = [...(c.text || '').replace(/\s+/g, '')].length;
+        if (b - a < nChars * 0.12) a = Math.max(prevEnd, b - nChars * 0.25);
+        if (a >= b) { a = 0; b = totalSec; }
+        prevEnd = b;
+        return { a, b, text: (c.text || '').trim() };
       });
+      const points = computeSplitPoints(totalSec, n, clean.map(c => ({ timestamp: [c.a, c.b] })));
+      const texts = Array(points.length - 1).fill('');
+      for (const c of clean) {
+        const chars = [...c.text], dur = Math.max(0.001, c.b - c.a);
+        let pos = 0;
+        for (let k = 0; k < points.length - 1; k++) {
+          const ov = Math.max(0, Math.min(c.b, points[k+1]) - Math.max(c.a, points[k]));
+          const take = (k === points.length - 2) ? chars.length - pos : Math.round(chars.length * ov / dur);
+          texts[k] += chars.slice(pos, pos + take).join(''); pos += take;
+        }
+      }
+      chunks = texts.map((text, k) => ({ timestamp: [points[k], points[k+1]], text, sceneIdx: k }));
     }
 
     lastSRT = chunksToSRT(chunks);
@@ -2831,20 +2851,25 @@ function splitLongText(text, maxLen = 18) {
 
 // 把旁白文本按「第N幕：/ Scene N:」切成 N 段，去掉前缀
 function parseNarrationScenes(text, n) {
-  const lines = text.split('\n').map(s => s.trim()).filter(Boolean);
+  // 剥掉 markdown 记号与「旁白：」标签，容错 NotebookLM 的各种格式
+  const clean = ln => ln.replace(/^[#>\-*\s]+/, '').replace(/\*\*/g, '').trim();
+  const LABEL = /^(?:旁白文案|旁白|Narration)\s*[：:]\s*/i;
+  const HEAD = /^(?:第\s*[一二三四五六七八九十百千0-9]+\s*[幕页张頁]|(?:Scene|Page|Slide)\s*\d+)\s*(?:[（(][^）)]*[）)])?\s*(?:[：:]\s*|$|\s+)(.*)/i;
+  const lines = text.split('\n').map(clean).filter(Boolean);
+  const hasHead = lines.filter(ln => HEAD.test(ln)).length >= 2;
   const buckets = [];
   for (const ln of lines) {
-    const m = ln.match(/^(?:第[一二三四五六七八九十百千0-9]+[幕页][：:]\s*|Scene\s+\d+\s*:\s*)(.*)/i);
+    const m = hasHead ? ln.match(HEAD) : null;
     if (m) {
-      buckets.push(m[1]);
+      buckets.push(m[1].replace(LABEL, ''));
     } else if (buckets.length) {
-      buckets[buckets.length - 1] += ln;
-    } else {
+      buckets[buckets.length - 1] += ln.replace(LABEL, '');
+    } else if (!hasHead) {
       buckets.push(ln);
-    }
+    } // 有标记时，第一个标记前的开场白（如「好的，以下是…」）丢掉
   }
   const marked = buckets.filter(Boolean);
-  if (marked.length >= 2) return marked;
+  if (hasHead && marked.length >= 2) return marked;
   const plain = text.replace(/(?:第[一二三四五六七八九十百千0-9]+[幕页][：:]|Scene\s+\d+\s*:)/gi, '').replace(/\s+/g, '');
   const per = Math.ceil(plain.length / n);
   const out = [];
@@ -3159,6 +3184,34 @@ function float32ToWav(samples, sampleRate) {
 
 // 计算 N 幕的切割点（秒）— 优先使用 Whisper chunks 的语义边界，否则均分
 // 按各幕字数比例算时间切点（更贴合真实朗读节奏），再吸附到最近的语音停顿
+// 切点微调：在音档里找切点附近最安静的地方（Whisper 没给分句时间时也能对准停顿）
+let __curAudio = null;
+function snapPointsToSilence(points, audio, sr) {
+  if (!audio || points.length < 3) return points;
+  const win = Math.round(sr * 0.02);
+  const frameRms = i => { let s = 0; const st = i * win; for (let k = st; k < st + win && k < audio.length; k++) s += audio[k] * audio[k]; return Math.sqrt(s / win); };
+  const out = points.slice();
+  for (let p = 1; p < points.length - 1; p++) {
+    const t = points[p];
+    const reach = Math.min(1.2, (t - out[p-1]) * 0.4, (points[p+1] - t) * 0.4);
+    const f0 = Math.max(0, Math.floor((t - reach) * sr / win)), f1 = Math.floor((t + reach) * sr / win);
+    const rms = []; for (let f = f0; f <= f1; f++) rms.push(frameRms(f));
+    if (!rms.length) continue;
+    const thr = Math.max(...rms) * 0.08;
+    // 找低于门槛的连续段，取离原切点最近的那段中心
+    let best = null, bestD = Infinity, i = 0;
+    while (i < rms.length) {
+      if (rms[i] <= thr) { let j = i; while (j < rms.length && rms[j] <= thr) j++;
+        if (j - i >= 3) { const c = (f0 + (i + j) / 2) * win / sr; const d = Math.abs(c - t); if (d < bestD) { bestD = d; best = c; } }
+        i = j; } else i++;
+    }
+    if (best == null) { const m = rms.indexOf(Math.min(...rms)); best = (f0 + m + 0.5) * win / sr; }
+    out[p] = +best.toFixed(3);
+  }
+  for (let i = 1; i < out.length; i++) if (out[i] <= out[i-1]) out[i] = out[i-1] + 0.05;
+  return out;
+}
+
 function computeSplitPointsByText(totalSec, sceneTexts, chunks) {
   const n = sceneTexts.length;
   if (n < 2) return [0, totalSec];
@@ -3191,7 +3244,7 @@ function computeSplitPointsByText(totalSec, sceneTexts, chunks) {
   for (let i = 1; i < points.length; i++) {
     if (points[i] <= points[i-1]) points[i] = points[i-1] + 0.05;
   }
-  return [...new Set(points.map(x => +x.toFixed(3)))].sort((a,b)=>a-b);
+  return snapPointsToSilence([...new Set(points.map(x => +x.toFixed(3)))].sort((a,b)=>a-b), __curAudio, 16000);
 }
 
 function computeSplitPoints(totalSec, n, chunks) {
@@ -3216,7 +3269,7 @@ function computeSplitPoints(totalSec, n, chunks) {
   }
   points.push(totalSec);
   // 去重 & 排序
-  return [...new Set(points.map(x => +x.toFixed(3)))].sort((a,b)=>a-b);
+  return snapPointsToSilence([...new Set(points.map(x => +x.toFixed(3)))].sort((a,b)=>a-b), __curAudio, 16000);
 }
 
 function resetAll() {
@@ -3594,7 +3647,7 @@ const I18N = {
     narrTitle: '旁白文案', regen: '⚡ 重新生成', copyStudio: '📋 复制给 Google AI Studio',
     styleLabel: '风格：', narrStd: '📖 原文旁白', narrRich: '✨ 生动旁白',
     voiceFlow: '① 生成旁白 → ② 选声线一键转语音 → ③ 试听满意 → ④ 转字幕 → ⑤ 按幕切割打包',
-    narrPh: '旁白将自动产出，可手动编辑',
+    narrPh: '第1页：……\n第2页：……', narrPasteLabel: '📝 贴上旁白文案（可选，每幕以「第1页：」开头；贴了就按内容切，不贴就按幕数平均切）',
     ttsTitle: '语音生成', needApiKey: '⚠️ 请先在顶部填入 API Key',
     voiceLineLabel: '🎭 声线',
     toneLabel: '🎨 语气描述（可选）',
@@ -3665,7 +3718,7 @@ const I18N = {
     narrTitle: 'Narration script', regen: '⚡ Regenerate', copyStudio: '📋 Copy for Google AI Studio',
     styleLabel: 'Style:', narrStd: '📖 Original text', narrRich: '✨ Enriched narration',
     voiceFlow: '① Generate narration → ② pick voice & TTS → ③ preview → ④ to SRT → ⑤ split & bundle',
-    narrPh: 'Narration will appear here — you can edit freely',
+    narrPh: 'Page 1: ...\nPage 2: ...', narrPasteLabel: '📝 Paste narration (optional, start each scene with "Page 1:"; pasted = split by content, empty = split evenly by scene count)',
     ttsTitle: 'Voice generation', needApiKey: '⚠️ Please enter the API Key at the top first',
     voiceLineLabel: '🎭 Voice',
     toneLabel: '🎨 Tone description (optional)',
