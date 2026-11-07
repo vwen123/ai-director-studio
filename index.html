@@ -695,6 +695,7 @@
             <textarea id="narration-out" rows="8" style="margin-top:6px" data-i18n-ph="narrPh" placeholder="第1页：……&#10;第2页：……"></textarea>
             <div class="btn-row" style="margin-top:6px">
               <button type="button" class="btn btn-primary btn-sm" onclick="cleanNarrationBox()" data-i18n="narrCleanBtn">🧹 整理成干净旁白</button>
+              <button type="button" class="btn btn-amber btn-sm" onclick="extractOriginalBox()" data-i18n="narrOrigBtn">📖 只取课文原文</button>
               <button type="button" class="btn btn-green btn-sm" onclick="copyText(document.getElementById('narration-out').value)" data-i18n="narrCopyStudio">📋 复制给 AI Studio</button>
             </div>
           </div>
@@ -2888,6 +2889,41 @@ function parseNarrationScenes(text, n) {
   return out.filter(Boolean);
 }
 
+// 📖 从 NotebookLM「插图建议大纲」只抽每页的「课文原文」（一字不改，保留诗句空格）
+function extractOriginalTexts(raw) {
+  const LABEL = /^(?:课文原文内容|故事原文内容|原文内容|课文原文|故事原文|原文|Original\s+(?:story\s+)?text)\s*[：:]?\s*(.*)$/i;
+  const HEAD = /^(?:第\s*[一二三四五六七八九十百千0-9]+\s*[幕页张頁]|(?:Scene|Page|Slide)\s*\d+)/i;
+  const isBullet = ln => /^\s*(?:[*\-•]|\d+[.、])\s+/.test(ln);
+  const strip = ln => ln.replace(/^\s*(?:[*\-•>#]+|\d+[.、])\s*/, '').replace(/\*\*/g, '').trim();
+  const lines = raw.split(/\r?\n/);
+  const out = [];
+  for (let i = 0; i < lines.length; i++) {
+    const m = strip(lines[i]).match(LABEL);
+    if (!m) continue;
+    const buf = m[1].trim() ? [m[1].trim()] : [];
+    for (let j = i + 1; j < lines.length; j++) {
+      const ln = lines[j];
+      if (!ln.trim()) { if (buf.length) break; else continue; }
+      if (isBullet(ln) || HEAD.test(strip(ln)) || /^\s*#/.test(ln)) break;   // 下一个「* 故事化呈现：」或下一页就停
+      buf.push(ln.replace(/\*\*/g, '').trim());
+    }
+    const t = buf.join(' ').replace(/\s*\[\d+(?:\s*[,，]\s*\d+)*\]/g, '').replace(/^["“「『]+|["”」』]+$/g, '').trim();
+    if (t) out.push(t);
+  }
+  return out;
+}
+function extractOriginalBox() {
+  const el = document.getElementById('narration-out');
+  const raw = (el?.value || '').trim();
+  if (!raw) { showToast(T('narrCleanEmpty')); return; }
+  const pages = extractOriginalTexts(raw);
+  if (!pages.length) { showToast(T('narrNoOriginal')); return; }
+  el.value = pages.join('\n\n');
+  el.dispatchEvent(new Event('input', { bubbles: true }));
+  try { save(); } catch (e) {}
+  showToast(T('narrCleanDone').replace('{n}', pages.length));
+}
+
 // 🧹 把 NotebookLM 原文整理成干净旁白：每页一段、空行分隔，没有标题/标签/引用/粗体，可直接贴 AI Studio
 function cleanNarrationBox() {
   const el = document.getElementById('narration-out');
@@ -2910,7 +2946,7 @@ function alignChunksToText(chunks, sceneTexts, totalSec) {
   // 这样无论 Whisper 输出几条 chunk，字幕条数一定等于幕数，内容一定是旁白文本
   return sceneTexts.map((text, i) => ({
     timestamp: [points[i], points[i + 1]],
-    text: (text || '').replace(/\s+/g, ''),
+    text: (text || '').replace(/\s+/g, ' ').trim(),   // 保留诗句空格
     sceneIdx: i,
   }));
 }
@@ -3255,12 +3291,18 @@ function alignCutsByPauses(audio, sr, sceneTexts) {
   const S = sil.filter(x => x.c > speechStart + 0.05 && x.c < speechEnd - 0.05);
   // 标点序列（连续标点算一个），记录每页最后一个标点的序号
   const PUNCT = /[，。！？；：、,.!?;:…—]/;
-  const pages = sceneTexts.map(t => [...(t || '').replace(/\s+/g, '')]);
-  const totalChars = pages.reduce((a, p) => a + p.length, 0) || 1;
+  // 诗句里的空格（断句）也当作可能的停顿点；空格本身不算字数
+  const pages = sceneTexts.map(t => [...(t || '').trim()]);
+  const totalChars = pages.reduce((a, p) => a + p.filter(ch => !/\s/.test(ch)).length, 0) || 1;
   const P = [], pageEnd = []; let pos = 0;
   pages.forEach((chars, k) => {
-    chars.forEach((ch, x) => { if (PUNCT.test(ch) && !(x > 0 && PUNCT.test(chars[x - 1]))) P.push({ idx: pos + x + 1, page: k }); });
-    pos += chars.length;
+    let prevMark = false;
+    chars.forEach(ch => {
+      if (/\s/.test(ch)) { if (!prevMark) { P.push({ idx: pos, page: k }); prevMark = true; } return; }
+      pos++;
+      if (PUNCT.test(ch)) { if (prevMark) P[P.length - 1].idx = pos; else P.push({ idx: pos, page: k }); prevMark = true; }
+      else prevMark = false;
+    });
     const lastIsPunct = P.length && P[P.length - 1].page === k && P[P.length - 1].idx === pos;
     if (!lastIsPunct) P.push({ idx: pos, page: k });
     pageEnd.push(P.length - 1);
@@ -3283,7 +3325,12 @@ function alignCutsByPauses(audio, sr, sceneTexts) {
   const points = [0];
   for (let k = 0; k < pageEnd.length - 1; k++) {
     const pi = pageEnd[k], si = match[pi];
-    points.push(si >= 0 ? S[si].c : P[pi].t);
+    if (si >= 0) { points.push(S[si].c); continue; }
+    // 这页结尾在音档里没有明显停顿：在 ±0.5 秒内找声音最小的 60ms（通常是两个字之间）
+    const c0 = Math.max(0, Math.round((P[pi].t - 0.5) / 0.02)), c1 = Math.min(nf - 3, Math.round((P[pi].t + 0.5) / 0.02));
+    let bestF = Math.round(P[pi].t / 0.02), bestE = Infinity;
+    for (let f = c0; f <= c1; f++) { const e = rms[f] + rms[f+1] + rms[f+2]; if (e < bestE) { bestE = e; bestF = f + 1.5; } }
+    points.push(bestF * 0.02);
   }
   points.push(totalSec);
   for (let k = 1; k < points.length; k++) if (points[k] <= points[k-1]) points[k] = points[k-1] + 0.05;
@@ -3726,7 +3773,7 @@ const I18N = {
     narrTitle: '旁白文案', regen: '⚡ 重新生成', copyStudio: '📋 复制给 Google AI Studio',
     styleLabel: '风格：', narrStd: '📖 原文旁白', narrRich: '✨ 生动旁白',
     voiceFlow: '① 生成旁白 → ② 选声线一键转语音 → ③ 试听满意 → ④ 转字幕 → ⑤ 按幕切割打包',
-    narrPh: '第1页：……\n第2页：……', narrPasteLabel: '📝 贴上 NotebookLM 的旁白 → 🧹 整理 → 复制给 AI Studio 生成语音 → 上传音档，就按这份旁白切幕和做字幕（不贴就按幕数平均切）', narrCleanBtn: '🧹 整理成干净旁白', narrCopyStudio: '📋 复制给 AI Studio', narrCleanEmpty: '请先贴上旁白', narrCleanDone: '✅ 已整理成 {n} 页旁白',
+    narrPh: '第1页：……\n第2页：……', narrPasteLabel: '📝 贴上 NotebookLM 的内容 → 选一种整理（③旁白文案用 🧹；①插图大纲只要原文用 📖）→ 复制给 AI Studio 生成语音 → 上传音档，就按这份文字切幕和做字幕（不贴就按幕数平均切）', narrCleanBtn: '🧹 整理成干净旁白', narrOrigBtn: '📖 只取课文原文', narrNoOriginal: '没找到「课文原文」，请贴①的插图建议大纲', narrCopyStudio: '📋 复制给 AI Studio', narrCleanEmpty: '请先贴上旁白', narrCleanDone: '✅ 已整理成 {n} 页旁白',
     ttsTitle: '语音生成', needApiKey: '⚠️ 请先在顶部填入 API Key',
     voiceLineLabel: '🎭 声线',
     toneLabel: '🎨 语气描述（可选）',
@@ -3797,7 +3844,7 @@ const I18N = {
     narrTitle: 'Narration script', regen: '⚡ Regenerate', copyStudio: '📋 Copy for Google AI Studio',
     styleLabel: 'Style:', narrStd: '📖 Original text', narrRich: '✨ Enriched narration',
     voiceFlow: '① Generate narration → ② pick voice & TTS → ③ preview → ④ to SRT → ⑤ split & bundle',
-    narrPh: 'Page 1: ...\nPage 2: ...', narrPasteLabel: '📝 Paste NotebookLM narration → 🧹 Clean → copy to AI Studio for voice → upload the audio; it will be split and subtitled by this text (empty = split evenly)', narrCleanBtn: '🧹 Clean narration', narrCopyStudio: '📋 Copy for AI Studio', narrCleanEmpty: 'Paste narration first', narrCleanDone: '✅ Cleaned into {n} pages',
+    narrPh: 'Page 1: ...\nPage 2: ...', narrPasteLabel: '📝 Paste NotebookLM narration → 🧹 Clean → copy to AI Studio for voice → upload the audio; it will be split and subtitled by this text (empty = split evenly)', narrCleanBtn: '🧹 Clean narration', narrOrigBtn: '📖 Original text only', narrNoOriginal: 'No "original text" found — paste the illustration outline from ①', narrCopyStudio: '📋 Copy for AI Studio', narrCleanEmpty: 'Paste narration first', narrCleanDone: '✅ Cleaned into {n} pages',
     ttsTitle: 'Voice generation', needApiKey: '⚠️ Please enter the API Key at the top first',
     voiceLineLabel: '🎭 Voice',
     toneLabel: '🎨 Tone description (optional)',
